@@ -24,8 +24,9 @@
 
 #include "board.h"
 #include "ble_mesh_example_init.h"
+#include "WS2812.h"
 
-#define TAG "EXAMPLE"
+#define TAG "MESH_SERVER"
 
 #define CID_ESP     0x02E5
 
@@ -34,6 +35,8 @@
 
 #define ESP_BLE_MESH_VND_MODEL_OP_SEND      ESP_BLE_MESH_MODEL_OP_3(0x00, CID_ESP)
 #define ESP_BLE_MESH_VND_MODEL_OP_STATUS    ESP_BLE_MESH_MODEL_OP_3(0x01, CID_ESP)
+
+static uint16_t dev_local_id = 0;
 
 static uint8_t dev_uuid[ESP_BLE_MESH_OCTET16_LEN] = { 0x32, 0x10 };
 
@@ -137,7 +140,8 @@ static void example_ble_mesh_config_server_cb(esp_ble_mesh_cfg_server_cb_event_t
                 param->value.state_change.appkey_add.app_idx);
             ESP_LOG_BUFFER_HEX("AppKey", param->value.state_change.appkey_add.app_key, 16);
             break;
-        case ESP_BLE_MESH_MODEL_OP_MODEL_APP_BIND:
+        case ESP_BLE_MESH_MODEL_OP_MODEL_APP_BIND:\
+            dev_local_id = param->value.state_change.mod_app_bind.element_addr - 4;
             ESP_LOGI(TAG, "ESP_BLE_MESH_MODEL_OP_MODEL_APP_BIND");
             ESP_LOGI(TAG, "elem_addr 0x%04x, app_idx 0x%04x, cid 0x%04x, mod_id 0x%04x",
                 param->value.state_change.mod_app_bind.element_addr,
@@ -241,13 +245,14 @@ static esp_err_t ble_mesh_init(void)
 }
 
 extern bool start;
-void Task1(void* param) //传入空指针方便后期传入参数:
+void Ble_Mesh_Send(void* param) //传入空指针方便后期传入参数:
 {
     while(1)
     {
         if(start == 1) {
             printf("Send msg to sever!\n");//打印Hello Task!
-            static char send_data[5]="1234";
+            static char send_data[5];
+            itoa(dev_local_id,send_data,10);
             example_ble_mesh_send_vendor_message(false,5,(uint8_t*)send_data);
         }
         vTaskDelay(100/portTICK_PERIOD_MS);//延时1000ms=1s,使系统执行其他任务
@@ -284,5 +289,6 @@ void app_main(void)
         ESP_LOGE(TAG, "Bluetooth mesh init failed (err %d)", err);
     }
 
-    xTaskCreate(Task1,"Task1",2048,NULL,1,NULL);
+    xTaskCreate(Ble_Mesh_Send,"Ble_Mesh_Send",2048,NULL,1,NULL);
+    xTaskCreate(WS2812_Task,"WS2812_Task",2048,NULL,2,NULL);
 }

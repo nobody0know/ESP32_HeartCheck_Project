@@ -4,8 +4,8 @@
   "idf.openOcdConfigs": [
     "board/esp32c3-builtin.cfg"
   ],
-  "idf.portWin": "COM9",
-  "idf.flashType": "UART",
+  "idf.portWin": "COM12",
+  "idf.flashType": "JTAG",
   "files.associations": {
     "esp_log.h": "c"
   }
