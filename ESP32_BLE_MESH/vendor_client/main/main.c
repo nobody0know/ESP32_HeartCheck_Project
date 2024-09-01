@@ -450,18 +450,27 @@ static void example_ble_mesh_config_client_cb(esp_ble_mesh_cfg_client_cb_event_t
         break;
     }
 }
-bool start=0;
+
 void example_ble_mesh_send_vendor_message(bool resend)
 {
-    start = 1;
 
-    esp_ble_mesh_msg_ctx_t ctx = {0};
+    // esp_ble_mesh_msg_ctx_t ctx = {0};
+    // uint32_t opcode;
+    // esp_err_t err;
+
+    // ctx.net_idx = prov_key.net_idx;
+    // ctx.app_idx = prov_key.app_idx;
+    // ctx.addr = store.server_addr;
+    // ctx.send_ttl = MSG_SEND_TTL;
+    // opcode = ESP_BLE_MESH_VND_MODEL_OP_SEND;
+
+        esp_ble_mesh_msg_ctx_t ctx = {0};
     uint32_t opcode;
     esp_err_t err;
-
-    ctx.net_idx = prov_key.net_idx;
-    ctx.app_idx = prov_key.app_idx;
-    ctx.addr = store.server_addr;
+ 
+    ctx.net_idx = 0x0000;
+    ctx.app_idx = 0x0000;
+    ctx.addr = 0xffff;
     ctx.send_ttl = MSG_SEND_TTL;
     opcode = ESP_BLE_MESH_VND_MODEL_OP_SEND;
 
@@ -469,12 +478,16 @@ if (resend == false) {
         store.vnd_tid++;
     }
 
-     err = esp_ble_mesh_client_model_send_msg(vendor_client.model, &ctx, opcode,
-            sizeof(store.vnd_tid), (uint8_t *)&store.vnd_tid, MSG_TIMEOUT, true, MSG_ROLE);
+    //  err = esp_ble_mesh_client_model_send_msg(vendor_client.model, &ctx, opcode,
+    //         sizeof(store.vnd_tid), (uint8_t *)&store.vnd_tid, MSG_TIMEOUT, true, MSG_ROLE);
+    err = esp_ble_mesh_server_model_send_msg(&vnd_models[0],&ctx, ESP_BLE_MESH_VND_MODEL_OP_SEND,sizeof(store.vnd_tid),(uint8_t *)&store.vnd_tid);//广播发送
+    // err = esp_ble_mesh_model_publish(vendor_client.model,opcode,sizeof(store.vnd_tid),(uint8_t *)&store.vnd_tid,MSG_ROLE);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to send vendor message 0x%06" PRIx32, opcode);
         return;
     }
+
+
 
     mesh_example_info_store(); /* Store proper mesh example info */
 }
