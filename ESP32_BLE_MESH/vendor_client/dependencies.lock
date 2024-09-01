@@ -1,0 +1,27 @@
+dependencies:
+  button:
+    component_hash: null
+    source:
+      path: C:\Users\lc201\esp\v5.3\esp-idf\examples\bluetooth\esp_ble_mesh\common_components\button
+      type: local
+    version: '*'
+  example_init:
+    component_hash: null
+    source:
+      path: C:\Users\lc201\esp\v5.3\esp-idf\examples\bluetooth\esp_ble_mesh\common_components\example_init
+      type: local
+    version: '*'
+  example_nvs:
+    component_hash: null
+    source:
+      path: C:\Users\lc201\esp\v5.3\esp-idf\examples\bluetooth\esp_ble_mesh\common_components\example_nvs
+      type: local
+    version: '*'
+  idf:
+    component_hash: null
+    source:
+      type: idf
+    version: 5.3.0
+manifest_hash: 01998666b0a39c4a5629e9256ce50a5fcc0a0707902f04580eef69be1f75adb2
+target: esp32c3
+version: 1.0.0

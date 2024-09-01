@@ -450,9 +450,11 @@ static void example_ble_mesh_config_client_cb(esp_ble_mesh_cfg_client_cb_event_t
         break;
     }
 }
-
+bool start=0;
 void example_ble_mesh_send_vendor_message(bool resend)
 {
+    start = 1;
+
     esp_ble_mesh_msg_ctx_t ctx = {0};
     uint32_t opcode;
     esp_err_t err;
@@ -463,11 +465,11 @@ void example_ble_mesh_send_vendor_message(bool resend)
     ctx.send_ttl = MSG_SEND_TTL;
     opcode = ESP_BLE_MESH_VND_MODEL_OP_SEND;
 
-    if (resend == false) {
+if (resend == false) {
         store.vnd_tid++;
     }
 
-    err = esp_ble_mesh_client_model_send_msg(vendor_client.model, &ctx, opcode,
+     err = esp_ble_mesh_client_model_send_msg(vendor_client.model, &ctx, opcode,
             sizeof(store.vnd_tid), (uint8_t *)&store.vnd_tid, MSG_TIMEOUT, true, MSG_ROLE);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to send vendor message 0x%06" PRIx32, opcode);
@@ -500,6 +502,7 @@ static void example_ble_mesh_custom_model_cb(esp_ble_mesh_model_cb_event_t event
         break;
     case ESP_BLE_MESH_CLIENT_MODEL_RECV_PUBLISH_MSG_EVT:
         ESP_LOGI(TAG, "Receive publish message 0x%06" PRIx32, param->client_recv_publish_msg.opcode);
+        ESP_LOGI(TAG, "Receive publish message %s", param->client_recv_publish_msg.msg);
         break;
     case ESP_BLE_MESH_CLIENT_MODEL_SEND_TIMEOUT_EVT:
         ESP_LOGW(TAG, "Client message 0x%06" PRIx32 " timeout", param->client_send_timeout.opcode);
@@ -558,6 +561,8 @@ static esp_err_t ble_mesh_init(void)
     return ESP_OK;
 }
 
+
+
 void app_main(void)
 {
     esp_err_t err;
@@ -592,4 +597,7 @@ void app_main(void)
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Bluetooth mesh init failed (err %d)", err);
     }
+
+
+
 }

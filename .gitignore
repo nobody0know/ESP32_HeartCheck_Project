@@ -9,3 +9,5 @@ install_manifest.txt
 compile_commands.json
 CTestTestfile.cmake
 _deps
+ESP32_BLE_MESH/vendor_client/build/
+ESP32_BLE_MESH/vendor_server/build/

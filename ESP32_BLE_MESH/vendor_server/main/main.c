@@ -88,7 +88,7 @@ static void prov_complete(uint16_t net_idx, uint16_t addr, uint8_t flags, uint32
 {
     ESP_LOGI(TAG, "net_idx 0x%03x, addr 0x%04x", net_idx, addr);
     ESP_LOGI(TAG, "flags 0x%02x, iv_index 0x%08" PRIx32, flags, iv_index);
-    board_led_operation(LED_G, LED_OFF);
+    // board_led_operation(LED_G, LED_OFF);
 }
 
 static void example_ble_mesh_provisioning_cb(esp_ble_mesh_prov_cb_event_t event,
@@ -179,6 +179,40 @@ static void example_ble_mesh_custom_model_cb(esp_ble_mesh_model_cb_event_t event
     }
 }
 
+#define MSG_SEND_TTL        3
+#define MSG_SEND_REL        false
+#define MSG_TIMEOUT         0
+#define MSG_ROLE            ROLE_PROVISIONER
+void example_ble_mesh_send_vendor_message(bool resend,uint16_t lenght,uint8_t *data)
+{
+    esp_ble_mesh_msg_ctx_t ctx = {0};
+    uint32_t opcode;
+    esp_err_t err;
+ 
+    ctx.net_idx = 0x0000;
+    ctx.app_idx = 0x0000;
+    ctx.addr = 0xffff;
+    ctx.send_ttl = MSG_SEND_TTL;
+    opcode = ESP_BLE_MESH_VND_MODEL_OP_SEND;
+ 
+    // if (resend == false) {
+    //     data[0]++;
+    // }
+ 
+    //向client上报消息，其他server收不到
+    err = esp_ble_mesh_server_model_send_msg(&vnd_models[0],&ctx, ESP_BLE_MESH_VND_MODEL_OP_STATUS,lenght, (uint8_t *)data);
+    //向其他server发送消息，client收不到
+    //err = esp_ble_mesh_server_model_send_msg(&vnd_models[0],&ctx, ESP_BLE_MESH_VND_MODEL_OP_SEND,lenght, (uint8_t *)data);
+    
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to send vendor message 0x%06" PRIx32, opcode);
+        return;
+    }
+   
+    //mesh_example_info_store(); /* Store proper mesh example info */
+}
+
+
 static esp_err_t ble_mesh_init(void)
 {
     esp_err_t err;
@@ -204,6 +238,21 @@ static esp_err_t ble_mesh_init(void)
     ESP_LOGI(TAG, "BLE Mesh Node initialized");
 
     return ESP_OK;
+}
+
+extern bool start;
+void Task1(void* param) //传入空指针方便后期传入参数:
+{
+    while(1)
+    {
+        if(start == 1) {
+            printf("Send msg to sever!\n");//打印Hello Task!
+            static char send_data[5]="1234";
+            example_ble_mesh_send_vendor_message(false,5,(uint8_t*)send_data);
+        }
+        vTaskDelay(100/portTICK_PERIOD_MS);//延时1000ms=1s,使系统执行其他任务
+    }
+ 
 }
 
 void app_main(void)
@@ -234,4 +283,6 @@ void app_main(void)
     if (err) {
         ESP_LOGE(TAG, "Bluetooth mesh init failed (err %d)", err);
     }
+
+    xTaskCreate(Task1,"Task1",2048,NULL,1,NULL);
 }

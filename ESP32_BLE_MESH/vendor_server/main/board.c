@@ -9,11 +9,31 @@
 
 #include <stdio.h>
 #include "driver/gpio.h"
+#include "iot_button.h"
 #include "esp_log.h"
 #include "board.h"
 
 #define TAG "BOARD"
 
+#define BUTTON_IO_NUM           9
+#define BUTTON_ACTIVE_LEVEL     0
+
+bool start= 0;
+
+static void button_tap_cb(void* arg)
+{
+    // ESP_LOGI(TAG, "START SEND...");
+    if(start==0) start = 1;
+    else start = 0;
+}
+
+static void board_button_init(void)
+{
+    button_handle_t btn_handle = iot_button_create(BUTTON_IO_NUM, BUTTON_ACTIVE_LEVEL);
+    if (btn_handle) {
+        iot_button_set_evt_cb(btn_handle, BUTTON_CB_RELEASE, button_tap_cb, "RELEASE");
+    }
+}
 struct _led_state led_state[3] = {
     { LED_OFF, LED_OFF, LED_R, "red"   },
     { LED_OFF, LED_OFF, LED_G, "green" },
@@ -38,7 +58,6 @@ void board_led_operation(uint8_t pin, uint8_t onoff)
 
     ESP_LOGE(TAG, "LED is not found!");
 }
-
 static void board_led_init(void)
 {
     for (int i = 0; i < 3; i++) {
@@ -51,5 +70,6 @@ static void board_led_init(void)
 
 void board_init(void)
 {
+    board_button_init();
     board_led_init();
 }
