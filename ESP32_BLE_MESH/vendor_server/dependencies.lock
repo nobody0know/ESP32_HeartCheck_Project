@@ -2,13 +2,13 @@ dependencies:
   button:
     dependencies: []
     source:
-      path: C:\Users\lc201\esp\v5.3\esp-idf\examples\bluetooth\esp_ble_mesh\common_components\button
+      path: /home/ziye/esp/v5.3/esp-idf/examples/bluetooth/esp_ble_mesh/common_components/button
       type: local
     version: '*'
   example_init:
     dependencies: []
     source:
-      path: C:\Users\lc201\esp\v5.3\esp-idf\examples\bluetooth\esp_ble_mesh\common_components\example_init
+      path: /home/ziye/esp/v5.3/esp-idf/examples/bluetooth/esp_ble_mesh/common_components/example_init
       type: local
     version: '*'
   idf:

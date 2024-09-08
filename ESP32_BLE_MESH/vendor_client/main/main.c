@@ -465,7 +465,7 @@ void example_ble_mesh_send_vendor_message(bool resend)
     // ctx.send_ttl = MSG_SEND_TTL;
     // opcode = ESP_BLE_MESH_VND_MODEL_OP_SEND;
 
-        esp_ble_mesh_msg_ctx_t ctx = {0};
+    esp_ble_mesh_msg_ctx_t ctx = {0};
     uint32_t opcode;
     esp_err_t err;
  
@@ -479,8 +479,8 @@ if (resend == false) {
         store.vnd_tid++;
     }
 
-    //  err = esp_ble_mesh_client_model_send_msg(vendor_client.model, &ctx, opcode,
-    //         sizeof(store.vnd_tid), (uint8_t *)&store.vnd_tid, MSG_TIMEOUT, true, MSG_ROLE);
+     err = esp_ble_mesh_client_model_send_msg(vendor_client.model, &ctx, opcode,
+            sizeof(store.vnd_tid), (uint8_t *)&store.vnd_tid, MSG_TIMEOUT, true, MSG_ROLE);
     err = esp_ble_mesh_server_model_send_msg(&vnd_models[0],&ctx, ESP_BLE_MESH_VND_MODEL_OP_SEND,sizeof(store.vnd_tid),(uint8_t *)&store.vnd_tid);//广播发送
     // err = esp_ble_mesh_model_publish(vendor_client.model,opcode,sizeof(store.vnd_tid),(uint8_t *)&store.vnd_tid,MSG_ROLE);
     if (err != ESP_OK) {
