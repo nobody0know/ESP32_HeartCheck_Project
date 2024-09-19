@@ -12,6 +12,7 @@
 #include "iot_button.h"
 #include "esp_log.h"
 #include "board.h"
+#include "ble_mesh.h"
 
 #define TAG "BOARD"
 
@@ -22,8 +23,8 @@ bool start= 0;
 
 static void button_tap_cb(void* arg)
 {
-    // ESP_LOGI(TAG, "START SEND...");
-
+    ESP_LOGI(TAG, "START SEND...");
+    ble_button_set();
 }
 
 static void board_button_init(void)

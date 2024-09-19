@@ -1,6 +1,7 @@
 #include "esp_log.h"
 #include "nvs_flash.h"
 #include "esp_bt.h"
+#include<sys/time.h>
 
 #include "esp_ble_mesh_defs.h"
 #include "esp_ble_mesh_common_api.h"
@@ -11,6 +12,10 @@
 
 #include "board.h"
 #include "ble_mesh_example_init.h"
+#include "WS2812.h"
+
+#include "stdio.h"
+#include "string.h"
 
 #define CID_ESP     0x02E5
 

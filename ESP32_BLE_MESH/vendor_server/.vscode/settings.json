@@ -4,10 +4,17 @@
   "idf.openOcdConfigs": [
     "board/esp32c3-builtin.cfg"
   ],
-  "idf.portWin": "COM12",
-  "idf.flashType": "JTAG",
+  "idf.portWin": "COM13",
+  "idf.flashType": "UART",
   "files.associations": {
     "esp_log.h": "c",
-    "board.h": "c"
+    "board.h": "c",
+    "esp_ble_mesh_local_data_operation_api.h": "c",
+    "compare": "c",
+    "cstdint": "c",
+    "esp_ble_mesh_provisioning_api.h": "c",
+    "esp_ble_mesh_defs.h": "c",
+    "ble_mesh_example_init.h": "c",
+    "ble_mesh.h": "c"
   }
 }

@@ -35,3 +35,6 @@ esp_err_t rmt_new_led_strip_encoder(const led_strip_encoder_config_t *config, rm
 }
 #endif
 extern void WS2812_Task(void* param);
+extern void ok_led();
+extern void close_led();
+extern void provision_led();

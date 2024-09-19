@@ -21,6 +21,10 @@ static const char *TAG = "WS2812";
 static uint8_t led_strip_pixels[EXAMPLE_LED_NUMBERS * 3];
 
 
+static uint32_t red = 0;
+static uint32_t green = 0;
+static uint32_t blue = 0;
+
 typedef struct {
     rmt_encoder_t base;
     rmt_encoder_t *bytes_encoder;
@@ -135,12 +139,31 @@ err:
     return ret;
 }
 
+void close_led()
+{
+    red = 0;
+    blue = 0;
+    green = 0;
+}
+
+void ok_led()
+{
+    red = 0;
+    blue = 0;
+    green = 11;
+}
+
+void provision_led()
+{
+    red = 0;
+    blue = 11;
+    green = 0;
+}
+
 
 void WS2812_Task(void* param)
 {
-    uint32_t red = 2;
-    uint32_t green = 1;
-    uint32_t blue = 11;
+
 
     ESP_LOGI(TAG, "Create RMT TX channel");
     rmt_channel_handle_t led_chan = NULL;
@@ -170,8 +193,8 @@ void WS2812_Task(void* param)
     while (1) {
 
             led_strip_pixels[0] = green;
-            led_strip_pixels[1] = blue;
-            led_strip_pixels[2] = red;
+            led_strip_pixels[1] = red;
+            led_strip_pixels[2] = blue;
             
             // Flush RGB values to LEDs
             ESP_ERROR_CHECK(rmt_transmit(led_chan, led_encoder, led_strip_pixels, sizeof(led_strip_pixels), &tx_config));

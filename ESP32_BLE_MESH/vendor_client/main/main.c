@@ -475,14 +475,13 @@ void example_ble_mesh_send_vendor_message(bool resend)
     ctx.send_ttl = MSG_SEND_TTL;
     opcode = ESP_BLE_MESH_VND_MODEL_OP_SEND;
 
-if (resend == false) {
-        store.vnd_tid++;
-    }
-
-     err = esp_ble_mesh_client_model_send_msg(vendor_client.model, &ctx, opcode,
-            sizeof(store.vnd_tid), (uint8_t *)&store.vnd_tid, MSG_TIMEOUT, true, MSG_ROLE);
-    err = esp_ble_mesh_server_model_send_msg(&vnd_models[0],&ctx, ESP_BLE_MESH_VND_MODEL_OP_SEND,sizeof(store.vnd_tid),(uint8_t *)&store.vnd_tid);//广播发送
-    // err = esp_ble_mesh_model_publish(vendor_client.model,opcode,sizeof(store.vnd_tid),(uint8_t *)&store.vnd_tid,MSG_ROLE);
+    char advertise[20] = "hello world!";
+    struct timeval tv_now;
+    gettimeofday(&tv_now, NULL);
+    uint32_t time_ms = ((int64_t)tv_now.tv_sec * 1000000L + (int64_t)tv_now.tv_usec)/1000;
+    //err = esp_ble_mesh_client_model_send_msg(vendor_client.model, &ctx, opcode,
+     //       sizeof(advertise), (uint8_t *)advertise, MSG_TIMEOUT, true, MSG_ROLE);
+    err = esp_ble_mesh_server_model_send_msg(&vnd_models[0],&ctx, opcode,sizeof(time_ms),(uint8_t *)&time_ms);//广播发送
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to send vendor message 0x%06" PRIx32, opcode);
         return;
@@ -518,8 +517,8 @@ static void example_ble_mesh_custom_model_cb(esp_ble_mesh_model_cb_event_t event
         // ESP_LOGI(TAG, "Receive publish message 0x%06" PRIx32, param->client_recv_publish_msg.opcode);
         struct timeval tv_now;
         gettimeofday(&tv_now, NULL);
-        int32_t time_us = (int64_t)tv_now.tv_sec * 1000000L + (int64_t)tv_now.tv_usec;
-        ESP_LOGI(TAG, "[%ld]Receive publish message %s", time_us,param->client_recv_publish_msg.msg);
+        int32_t time_ms = ((int64_t)tv_now.tv_sec * 1000000L + (int64_t)tv_now.tv_usec)/1000;
+        ESP_LOGI(TAG, "[%ld]Receive publish message %s", time_ms,param->client_recv_publish_msg.msg);
         break;
     case ESP_BLE_MESH_CLIENT_MODEL_SEND_TIMEOUT_EVT:
         ESP_LOGW(TAG, "Client message 0x%06" PRIx32 " timeout", param->client_send_timeout.opcode);

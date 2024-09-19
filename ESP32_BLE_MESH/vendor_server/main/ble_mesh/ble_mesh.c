@@ -1,5 +1,7 @@
 #include "ble_mesh.h"
 
+static int32_t time_flag_shift = 0;
+
 static const char *TAG = "MESH_SERVER";
 
 static uint16_t dev_local_id = 0;
@@ -106,13 +108,14 @@ static void example_ble_mesh_config_server_cb(esp_ble_mesh_cfg_server_cb_event_t
             ESP_LOG_BUFFER_HEX("AppKey", param->value.state_change.appkey_add.app_key, 16);
             break;
         case ESP_BLE_MESH_MODEL_OP_MODEL_APP_BIND:\
-            dev_local_id = param->value.state_change.mod_app_bind.element_addr - 4;//---------------get node id
+            dev_local_id = param->value.state_change.mod_app_bind.element_addr;//---------------get node id
             ESP_LOGI(TAG, "ESP_BLE_MESH_MODEL_OP_MODEL_APP_BIND");
             ESP_LOGI(TAG, "elem_addr 0x%04x, app_idx 0x%04x, cid 0x%04x, mod_id 0x%04x",
                 param->value.state_change.mod_app_bind.element_addr,
                 param->value.state_change.mod_app_bind.app_idx,
                 param->value.state_change.mod_app_bind.company_id,
                 param->value.state_change.mod_app_bind.model_id);
+            provision_led();
             break;
         default:
             break;
@@ -125,23 +128,38 @@ static void example_ble_mesh_custom_model_cb(esp_ble_mesh_model_cb_event_t event
 {
     switch (event) {
     case ESP_BLE_MESH_MODEL_OPERATION_EVT:
-        if (param->model_operation.opcode == ESP_BLE_MESH_VND_MODEL_OP_SEND) {
-            uint16_t tid = *(uint16_t *)param->model_operation.msg;
-            ESP_LOGI(TAG, "Recv 0x%06" PRIx32 ", tid 0x%04x", param->model_operation.opcode, tid);
-            esp_err_t err = esp_ble_mesh_server_model_send_msg(&vnd_models[0],
-                    param->model_operation.ctx, ESP_BLE_MESH_VND_MODEL_OP_STATUS,
-                    sizeof(tid), (uint8_t *)&tid);
-            if (err) {
-                ESP_LOGE(TAG, "Failed to send message 0x%06x", ESP_BLE_MESH_VND_MODEL_OP_STATUS);
+        //if (param->model_operation.opcode == ESP_BLE_MESH_VND_MODEL_OP_SEND) 
+        {
+            //char get_msg[param->model_operation.length];
+            //memcpy(get_msg,(uint8_t *)param->model_operation.msg,sizeof(get_msg));
+            //uint16_t tid = *(uint16_t *)param->model_operation.msg;
+            ok_led();
+            ESP_LOGI(TAG, "Recv 0x%06" PRIx32 ", msg is %ld", param->model_operation.opcode,*(uint32_t *)param->model_operation.msg);
+
+            struct timeval tv_now;
+            gettimeofday(&tv_now, NULL);
+            uint32_t time_ms = ((int64_t)tv_now.tv_sec * 1000000L + (int64_t)tv_now.tv_usec)/1000;
+            //if(*param->model_operation.msg > time_ms)
+            {
+                time_flag_shift = *(uint32_t *)param->model_operation.msg - time_ms;
             }
+
+            ESP_LOGI(TAG,"SET time flag shift is %ld",time_flag_shift);
+            // esp_err_t err = esp_ble_mesh_server_model_send_msg(&vnd_models[0],
+            //         param->model_operation.ctx, ESP_BLE_MESH_VND_MODEL_OP_STATUS,
+            //         sizeof(tid), (uint8_t *)&tid);
+            // if (err) {
+            //     ESP_LOGE(TAG, "Failed to send message 0x%06x", ESP_BLE_MESH_VND_MODEL_OP_STATUS);
+            // }
         }
+
         break;
     case ESP_BLE_MESH_MODEL_SEND_COMP_EVT:
         if (param->model_send_comp.err_code) {
             ESP_LOGE(TAG, "Failed to send message 0x%06" PRIx32, param->model_send_comp.opcode);
             break;
         }
-        ESP_LOGI(TAG, "Send 0x%06" PRIx32, param->model_send_comp.opcode);
+        //ESP_LOGI(TAG, "Send 0x%06" PRIx32, param->model_send_comp.opcode);
         break;
     default:
         break;
@@ -159,10 +177,10 @@ void example_ble_mesh_send_vendor_message(bool resend,uint16_t lenght,uint8_t *d
     ctx.app_idx = 0x0000;
     ctx.addr = 0xffff;
     ctx.send_ttl = MSG_SEND_TTL;
-    opcode = ESP_BLE_MESH_VND_MODEL_OP_SEND;
+    opcode = ESP_BLE_MESH_VND_MODEL_OP_STATUS;
  
     //向client上报消息，其他server收不到
-    err = esp_ble_mesh_server_model_send_msg(&vnd_models[0],&ctx, ESP_BLE_MESH_VND_MODEL_OP_STATUS,lenght, (uint8_t *)data);
+    err = esp_ble_mesh_server_model_send_msg(&vnd_models[0],&ctx, opcode,lenght, (uint8_t *)data);
     //向其他server发送消息，client收不到
     //err = esp_ble_mesh_server_model_send_msg(&vnd_models[0],&ctx, ESP_BLE_MESH_VND_MODEL_OP_SEND,lenght, (uint8_t *)data);
     
@@ -204,7 +222,6 @@ void ble_button_set()
 {
     if(SendMessageFlag==0) SendMessageFlag = 1;
     else SendMessageFlag = 0;
-
 }
 
 void BleMesh_Task(void* param) 
@@ -226,10 +243,11 @@ void BleMesh_Task(void* param)
     while(1)
     {
         if(SendMessageFlag == 1) {
-            printf("Send msg to sever!\n");
-            static char send_data[5];
-            itoa(dev_local_id,send_data,10);
-            example_ble_mesh_send_vendor_message(false,5,(uint8_t*)send_data);
+            printf("Send msg to client!\n");
+            static char send_data[255];
+            sprintf(send_data,"hello client,i'm dev%d",dev_local_id);
+            SendMessageFlag = 0;
+            example_ble_mesh_send_vendor_message(false,strlen(send_data),(uint8_t*)send_data);
         }
         vTaskDelay(pdMS_TO_TICKS(100));
     }
