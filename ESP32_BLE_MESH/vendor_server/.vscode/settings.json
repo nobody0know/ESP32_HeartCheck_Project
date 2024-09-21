@@ -15,6 +15,7 @@
     "esp_ble_mesh_provisioning_api.h": "c",
     "esp_ble_mesh_defs.h": "c",
     "ble_mesh_example_init.h": "c",
-    "ble_mesh.h": "c"
+    "ble_mesh.h": "c",
+    "esp_bt.h": "c"
   }
 }

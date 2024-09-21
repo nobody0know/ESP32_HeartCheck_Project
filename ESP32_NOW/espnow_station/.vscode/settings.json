@@ -5,5 +5,8 @@
     "board/esp32c3-builtin.cfg"
   ],
   "idf.portWin": "COM8",
-  "idf.flashType": "UART"
+  "idf.flashType": "UART",
+  "files.associations": {
+    "espnow_example.h": "c"
+  }
 }

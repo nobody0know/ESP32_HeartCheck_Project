@@ -29,6 +29,7 @@
 #include "esp_now.h"
 #include "esp_crc.h"
 #include "espnow_example.h"
+#include <sys/time.h>
 
 #define ESPNOW_MAXDELAY 512
 
@@ -72,13 +73,13 @@ static void example_espnow_send_cb(const uint8_t *mac_addr, esp_now_send_status_
         return;
     }
 
-    evt.id = EXAMPLE_ESPNOW_SEND_CB;
-    memcpy(send_cb->mac_addr, mac_addr, ESP_NOW_ETH_ALEN);
-    send_cb->status = status;
-    if (xQueueSend(s_example_espnow_queue, &evt, ESPNOW_MAXDELAY) != pdTRUE)
-    {
-        ESP_LOGW(TAG, "Send send queue fail");
-    }
+    // evt.id = EXAMPLE_ESPNOW_SEND_CB;
+    // memcpy(send_cb->mac_addr, mac_addr, ESP_NOW_ETH_ALEN);
+    // send_cb->status = status;
+    // if (xQueueSend(s_example_espnow_queue, &evt, ESPNOW_MAXDELAY) != pdTRUE)
+    // {
+    //     ESP_LOGW(TAG, "Send send queue fail");
+    // }
 }
 
 static void example_espnow_recv_cb(const esp_now_recv_info_t *recv_info, const uint8_t *data, int len)
@@ -168,7 +169,7 @@ void example_espnow_data_prepare(example_espnow_send_param_t *send_param)
     buf->crc = esp_crc16_le(UINT16_MAX, (uint8_t const *)buf, send_param->len);
 }
 
-//给节点配置ID
+//给节点配置ID并写入时间戳差值
 void device_prov_prepare(example_espnow_send_param_t *send_param)
 {
     esp_now_peer_num_t device_total;
@@ -187,7 +188,11 @@ void device_prov_prepare(example_espnow_send_param_t *send_param)
     buf->seq_num = s_example_espnow_seq[buf->type]++;
     buf->crc = 0;
     buf->magic = send_param->magic;
-    memcpy(buf->payload,&device_total.total_num,sizeof(int));
+    memcpy(buf->payload,&device_total.total_num,sizeof(uint8_t));
+
+    uint32_t time_ms = esp_log_timestamp();
+
+    memcpy(&buf->payload[1],&time_ms,sizeof(uint32_t));
     printf("prov pay load is :%d",buf->payload[0]);
     buf->crc = esp_crc16_le(UINT16_MAX, (uint8_t const *)buf, send_param->len);
 }
@@ -198,7 +203,6 @@ static void example_espnow_task(void *pvParameter)
     uint8_t recv_state = 0;
     uint16_t recv_seq = 0;
     uint32_t recv_magic = 0;
-    bool is_broadcast = false;
     int ret;
 
     vTaskDelay(1000 / portTICK_PERIOD_MS);
@@ -217,48 +221,6 @@ static void example_espnow_task(void *pvParameter)
     {
         switch (evt.id)
         {
-        case EXAMPLE_ESPNOW_SEND_CB:
-        {
-            example_espnow_event_send_cb_t *send_cb = &evt.info.send_cb;
-            is_broadcast = IS_BROADCAST_ADDR(send_cb->mac_addr);
-
-            ESP_LOGD(TAG, "Send data to " MACSTR ", status1: %d", MAC2STR(send_cb->mac_addr), send_cb->status);
-
-            if (is_broadcast && (send_param->broadcast == false))
-            {
-                break;
-            }
-
-            if (!is_broadcast)
-            {
-                send_param->count--;
-                if (send_param->count == 0)
-                {
-                    ESP_LOGI(TAG, "Send done");
-                    example_espnow_deinit(send_param);
-                    vTaskDelete(NULL);
-                }
-            }
-
-            /* Delay a while before sending the next data. */
-            if (send_param->delay > 0)
-            {
-                vTaskDelay(send_param->delay / portTICK_PERIOD_MS);
-            }
-
-            ESP_LOGI(TAG, "send data to " MACSTR "", MAC2STR(send_cb->mac_addr));
-
-            memcpy(send_param->dest_mac, send_cb->mac_addr, ESP_NOW_ETH_ALEN);
-            // example_espnow_data_prepare(send_param);
-
-            // /* Send the next data after the previous data is sent. */
-            // if (esp_now_send(send_param->dest_mac, send_param->buffer, send_param->len) != ESP_OK) {
-            //     ESP_LOGE(TAG, "Send error");
-            //     example_espnow_deinit(send_param);
-            //     vTaskDelete(NULL);
-            // }
-            break;
-        }
         case EXAMPLE_ESPNOW_RECV_CB:
         {
             example_espnow_event_recv_cb_t *recv_cb = &evt.info.recv_cb;
@@ -314,11 +276,11 @@ static void example_espnow_task(void *pvParameter)
                 union
                     {
                         example_espnow_data_t data;
-                        uint8_t get_data[100];
+                        uint8_t get_data[20];
                     }msg_data;
                     memcpy(msg_data.get_data,recv_cb->data,recv_cb->data_len);
                     printf("unicast payload is :");
-                for (int i = 0; i < 1; i++)
+                for (int i = 0; i < 5; i++)
                 {
                     printf(" %d",msg_data.data.payload[i]);
                 }

@@ -45,5 +45,5 @@ void app_main(void)
     board_init();
 
     xTaskCreate(BleMesh_Task,"BleMesh_Task",2048,NULL,1,NULL);
-    xTaskCreate(WS2812_Task,"WS2812_Task",2048,NULL,2,NULL);
+
 }
