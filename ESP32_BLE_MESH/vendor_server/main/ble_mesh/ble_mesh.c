@@ -108,7 +108,7 @@ static void example_ble_mesh_config_server_cb(esp_ble_mesh_cfg_server_cb_event_t
             ESP_LOG_BUFFER_HEX("AppKey", param->value.state_change.appkey_add.app_key, 16);
             break;
         case ESP_BLE_MESH_MODEL_OP_MODEL_APP_BIND:\
-            dev_local_id = param->value.state_change.mod_app_bind.element_addr;//---------------get node id
+            dev_local_id = param->value.state_change.mod_app_bind.element_addr-4;//---------------get node id
             ESP_LOGI(TAG, "ESP_BLE_MESH_MODEL_OP_MODEL_APP_BIND");
             ESP_LOGI(TAG, "elem_addr 0x%04x, app_idx 0x%04x, cid 0x%04x, mod_id 0x%04x",
                 param->value.state_change.mod_app_bind.element_addr,
@@ -172,15 +172,17 @@ void example_ble_mesh_send_vendor_message(bool resend,uint16_t lenght,uint8_t *d
     esp_ble_mesh_msg_ctx_t ctx = {0};
     uint32_t opcode;
     esp_err_t err;
- 
-    ctx.net_idx = 0x0000;
-    ctx.app_idx = 0x0000;
-    ctx.addr = 0xffff;
+
+    ctx.addr = 0x1;
     ctx.send_ttl = MSG_SEND_TTL;
     opcode = ESP_BLE_MESH_VND_MODEL_OP_STATUS;
  
     //向client上报消息，其他server收不到
     err = esp_ble_mesh_server_model_send_msg(&vnd_models[0],&ctx, opcode,lenght, (uint8_t *)data);
+
+    if (err) {
+        ESP_LOGE(TAG, "Failed to send message 0x%06x", ESP_BLE_MESH_VND_MODEL_OP_STATUS);
+    }
     //向其他server发送消息，client收不到
     //err = esp_ble_mesh_server_model_send_msg(&vnd_models[0],&ctx, ESP_BLE_MESH_VND_MODEL_OP_SEND,lenght, (uint8_t *)data);
     
@@ -224,6 +226,38 @@ void ble_button_set()
     else SendMessageFlag = 0;
 }
 
+void  myitoa(int num, char* str, int radix)
+{
+    int i = 0;
+    int sum;
+    unsigned int num1 = num;  //如果是负数求补码，必须将他的绝对值放在无符号位中在进行求反码
+    char str1[33] = { 0 };
+    if (num<0) {              //求出负数的补码
+        num = -num;
+        num1 = ~num;
+        num1 += 1;
+    }
+    if (num == 0) {             
+        str1[i] = '0';
+        
+        i++;
+    }
+    while(num1 !=0) {                      //进行进制运算
+        sum = num1 % radix;
+        str1[i] = (sum > 9) ? (sum - 10) + 'a' : sum + '0';
+        num1 = num1 / radix;
+        i++;
+    }
+    i--;
+    int j = 0;
+    for (; i >= 0; i--) {               //逆序输出 
+        str[i] = str1[j];
+        j++;
+    }
+    
+}
+
+
 void BleMesh_Task(void* param) 
 {
     esp_err_t err;
@@ -243,13 +277,23 @@ void BleMesh_Task(void* param)
     while(1)
     {
         if(SendMessageFlag == 1) {
-            printf("Send msg to client!\n");
-            static char send_data[255];
-            sprintf(send_data,"hello client,i'm dev%d",dev_local_id);
-            SendMessageFlag = 0;
+            static char send_data[400];
+            memset(send_data,'0',sizeof(send_data));
+            sprintf(send_data,"dev[%2d]msg:",dev_local_id);
+            int test = 222;
+            // for (int i = 0; i < 10; i++)
+            // {
+
+                 myitoa(test,&send_data[11],10);
+            //     //printf("add num:%s",&send_data[11 + i*5]);
+            // }
+            send_data[200] = '\0';
+            printf("my id is:%d\n",dev_local_id);
+            //SendMessageFlag = 0;
+            printf("Send [%d]byte msg to client:%s\n",strlen(send_data),send_data);
             example_ble_mesh_send_vendor_message(false,strlen(send_data),(uint8_t*)send_data);
         }
-        vTaskDelay(pdMS_TO_TICKS(100));
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
- 
+
 }

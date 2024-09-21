@@ -496,7 +496,7 @@ static void example_ble_mesh_custom_model_cb(esp_ble_mesh_model_cb_event_t event
                                              esp_ble_mesh_model_cb_param_t *param)
 {
     static int64_t start_time;
-
+    //printf("get msg\n");
     switch (event) {
     case ESP_BLE_MESH_MODEL_OPERATION_EVT:
         if (param->model_operation.opcode == ESP_BLE_MESH_VND_MODEL_OP_STATUS) {
@@ -515,10 +515,11 @@ static void example_ble_mesh_custom_model_cb(esp_ble_mesh_model_cb_event_t event
         break;
     case ESP_BLE_MESH_CLIENT_MODEL_RECV_PUBLISH_MSG_EVT:
         // ESP_LOGI(TAG, "Receive publish message 0x%06" PRIx32, param->client_recv_publish_msg.opcode);
-        struct timeval tv_now;
-        gettimeofday(&tv_now, NULL);
-        int32_t time_ms = ((int64_t)tv_now.tv_sec * 1000000L + (int64_t)tv_now.tv_usec)/1000;
-        ESP_LOGI(TAG, "[%ld]Receive publish message %s", time_ms,param->client_recv_publish_msg.msg);
+        // struct timeval tv_now;
+        // gettimeofday(&tv_now, NULL);
+        // int32_t time_ms = ((int64_t)tv_now.tv_sec * 1000000L + (int64_t)tv_now.tv_usec)/1000;
+        ESP_LOGI(TAG, "Receive message: %s",param->client_recv_publish_msg.msg);
+        //printf("[%ld]Receive publish message %s", time_ms,param->client_recv_publish_msg.msg);
         break;
     case ESP_BLE_MESH_CLIENT_MODEL_SEND_TIMEOUT_EVT:
         ESP_LOGW(TAG, "Client message 0x%06" PRIx32 " timeout", param->client_send_timeout.opcode);

@@ -14,3 +14,6 @@ ESP32_BLE_MESH/vendor_server/build/
 ESP32_BLE_MESH/vendor_server/dependencies.lock
 ESP32_BLE_MESH/vendor_client/dependencies.lock
 ESP32_BLE_MESH/vendor_client/dependencies.lock
+
+ESP32_NOW/espnow_station/build
+ESP32_NOW/espnow_node/build
