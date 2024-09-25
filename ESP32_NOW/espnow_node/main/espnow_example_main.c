@@ -13,7 +13,7 @@ void app_main(void)
     ESP_ERROR_CHECK(ret);
 
     board_init();
-    xTaskCreate(WS2812_Task,"WS2812_Task",2048,NULL,2,NULL);
+    xTaskCreate(WS2812_Task,"WS2812_Task",3072,NULL,2,NULL);
 
     example_wifi_init();
     example_espnow_init();

@@ -4,7 +4,7 @@
   "idf.openOcdConfigs": [
     "board/esp32c3-builtin.cfg"
   ],
-  "idf.portWin": "COM10",
+  "idf.portWin": "COM19",
   "idf.flashType": "UART",
   "files.associations": {
     "iot_button.h": "c",

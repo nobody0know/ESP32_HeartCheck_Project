@@ -106,10 +106,9 @@ esp_err_t example_espnow_init(void)
     memset(send_param, 0, sizeof(example_espnow_send_param_t));
     send_param->unicast = true;
     send_param->broadcast = false;
-    send_param->state = 0;
     send_param->magic = esp_random();
-    send_param->count = CONFIG_ESPNOW_SEND_COUNT*5;
-    send_param->delay = CONFIG_ESPNOW_SEND_DELAY*5;
+    send_param->count = CONFIG_ESPNOW_SEND_COUNT;
+    send_param->delay = CONFIG_ESPNOW_SEND_DELAY;
     send_param->len = CONFIG_ESPNOW_SEND_LEN;
     send_param->buffer = malloc(CONFIG_ESPNOW_SEND_LEN);
     if (send_param->buffer == NULL)
@@ -215,7 +214,6 @@ int example_espnow_data_parse(uint8_t *data, uint16_t data_len, uint8_t *state, 
         return -1;
     }
 
-    *state = buf->state;
     *seq = buf->seq_num;
     *magic = buf->magic;
     crc = buf->crc;
@@ -238,7 +236,6 @@ void example_espnow_data_prepare(example_espnow_send_param_t *send_param)
     assert(send_param->len >= sizeof(example_espnow_data_t));
 
     buf->type = IS_BROADCAST_ADDR(send_param->dest_mac) ? EXAMPLE_ESPNOW_DATA_BROADCAST : EXAMPLE_ESPNOW_DATA_UNICAST;
-    buf->state = send_param->state;
     buf->seq_num = s_example_espnow_seq[buf->type]++;
     buf->crc = 0;
     buf->magic = send_param->magic;
@@ -248,15 +245,15 @@ void example_espnow_data_prepare(example_espnow_send_param_t *send_param)
     buf->crc = esp_crc16_le(UINT16_MAX, (uint8_t const *)buf, send_param->len);
 }
 
-/* Prepare ESPNOW node data to be sent. */
+//填充ADC数据报文，为减少发送频率，将5次测量结果放一帧发送，报文总长为 帧头9byte + 5 * 8byte = 49
 void espnow_node_data_prepare(example_espnow_send_param_t *send_param)
 {
+    payload_msg msg;
     example_espnow_data_t *buf = (example_espnow_data_t *)send_param->buffer;
 
     assert(send_param->len >= sizeof(example_espnow_data_t));
 
     buf->type = IS_BROADCAST_ADDR(send_param->dest_mac) ? EXAMPLE_ESPNOW_DATA_BROADCAST : EXAMPLE_ESPNOW_DATA_UNICAST;
-    buf->state = send_param->state;
     buf->seq_num = s_example_espnow_seq[buf->type]++;
     buf->crc = 0;
     buf->magic = send_param->magic;
@@ -265,17 +262,42 @@ void espnow_node_data_prepare(example_espnow_send_param_t *send_param)
 
     memset(&buf->payload[1], device_id, sizeof(device_id));
 
-    union
+    for (int i = 0; i < 5; i++)
     {
-        float adc_value;
-        uint8_t adc_data[4];
-    } adc_data_union;
+        msg.payload_data.timestamp = esp_log_timestamp() + time_flag_gap;
+        msg.payload_data.adc_value = 2.33f;
 
-    adc_data_union.adc_value = 2.333f;
-
-    memcpy(&buf->payload[2], adc_data_union.adc_data, sizeof(adc_data_union));
+        memcpy(&buf->payload[3+i*8], msg.payload_buffer, sizeof(msg.payload_buffer));
+    }
 
     buf->crc = esp_crc16_le(UINT16_MAX, (uint8_t const *)buf, send_param->len);
+}
+
+void espnow_send_node_data(example_espnow_send_param_t *send_param)
+{
+    extern bool usermsg_send_start;
+    if (usermsg_send_start == 1)
+    {
+        /* Delay a while before sending the next data. */
+        if (send_param->delay > 0)
+        {
+            vTaskDelay(send_param->delay / portTICK_PERIOD_MS);
+        }
+        memcpy(send_param->dest_mac, station_mac, ESP_NOW_ETH_ALEN);
+        espnow_node_data_prepare(send_param);
+
+        ESP_LOGI(TAG, "send data to " MACSTR "", MAC2STR(send_param->dest_mac));
+
+        /* Send the next data after the previous data is sent. */
+        if (esp_now_send(send_param->dest_mac, send_param->buffer, send_param->len) != ESP_OK)
+        {
+            ESP_LOGE(TAG, "Send error");
+        }
+    }
+    else
+    {
+        vTaskDelay(100 / portTICK_PERIOD_MS);
+    }
 }
 
 static void example_espnow_task(void *pvParameter)
@@ -332,7 +354,7 @@ static void example_espnow_task(void *pvParameter)
 
                     uint32_t time_ms = esp_log_timestamp();
                     printf("now timestemp is %ld\n",time_ms);
-                    uint32_t get_timestemp = ((((uint32_t)msg_data.data.payload[2]<<8) | (uint32_t)msg_data.data.payload[1]));
+                    uint32_t get_timestemp = ((((uint32_t)msg_data.data.payload[4]<<24) | ((uint32_t)msg_data.data.payload[3]<<16) | ((uint32_t)msg_data.data.payload[2]<<8) | (uint32_t)msg_data.data.payload[1]));
                     printf("get timestemp is %ld\n",get_timestemp);
                     time_flag_gap = get_timestemp - time_ms;
 
@@ -355,29 +377,3 @@ static void example_espnow_task(void *pvParameter)
     }
 }
 
-void espnow_send_node_data(example_espnow_send_param_t *send_param)
-{
-    extern bool usermsg_send_start;
-    if (usermsg_send_start == 1)
-    {
-        /* Delay a while before sending the next data. */
-        if (send_param->delay > 0)
-        {
-            vTaskDelay(send_param->delay / portTICK_PERIOD_MS);
-        }
-        memcpy(send_param->dest_mac, station_mac, ESP_NOW_ETH_ALEN);
-        espnow_node_data_prepare(send_param);
-
-        ESP_LOGI(TAG, "send data to " MACSTR "", MAC2STR(send_param->dest_mac));
-
-        /* Send the next data after the previous data is sent. */
-        if (esp_now_send(send_param->dest_mac, send_param->buffer, send_param->len) != ESP_OK)
-        {
-            ESP_LOGE(TAG, "Send error");
-        }
-    }
-    else
-    {
-        vTaskDelay(100 / portTICK_PERIOD_MS);
-    }
-}

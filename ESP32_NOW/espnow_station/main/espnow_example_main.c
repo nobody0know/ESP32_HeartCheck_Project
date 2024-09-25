@@ -137,7 +137,6 @@ int example_espnow_data_parse(uint8_t *data, uint16_t data_len, uint8_t *state, 
         return -1;
     }
 
-    *state = buf->state;
     *seq = buf->seq_num;
     *magic = buf->magic;
     crc = buf->crc;
@@ -160,7 +159,6 @@ void example_espnow_data_prepare(example_espnow_send_param_t *send_param)
     assert(send_param->len >= sizeof(example_espnow_data_t));
 
     buf->type = IS_BROADCAST_ADDR(send_param->dest_mac) ? EXAMPLE_ESPNOW_DATA_BROADCAST : EXAMPLE_ESPNOW_DATA_UNICAST;
-    buf->state = send_param->state;
     buf->seq_num = s_example_espnow_seq[buf->type]++;
     buf->crc = 0;
     buf->magic = send_param->magic;
@@ -184,7 +182,6 @@ void device_prov_prepare(example_espnow_send_param_t *send_param)
     assert(send_param->len >= sizeof(example_espnow_data_t));
 
     buf->type = IS_BROADCAST_ADDR(send_param->dest_mac) ? EXAMPLE_ESPNOW_DATA_BROADCAST : EXAMPLE_ESPNOW_DATA_UNICAST;
-    buf->state = send_param->state;
     buf->seq_num = s_example_espnow_seq[buf->type]++;
     buf->crc = 0;
     buf->magic = send_param->magic;
@@ -249,7 +246,7 @@ static void example_espnow_task(void *pvParameter)
                     memcpy(peer->peer_addr, recv_cb->mac_addr, ESP_NOW_ETH_ALEN);
                     ESP_ERROR_CHECK(esp_now_add_peer(peer));
                     free(peer);
-
+                }
                     //发送所添加的节点的序号给它，用于报文辨识
                     send_param->unicast = true;
                     send_param->broadcast = false;
@@ -268,30 +265,16 @@ static void example_espnow_task(void *pvParameter)
                     {
                         ESP_LOGE(TAG, "Send error");
                     }
-                }
             }
             else if (ret == EXAMPLE_ESPNOW_DATA_UNICAST)
             {
-                ESP_LOGI(TAG, "Receive %dth unicast data from: " MACSTR ", len: %d", recv_seq, MAC2STR(recv_cb->mac_addr), recv_cb->data_len);
-                union
-                    {
-                        example_espnow_data_t data;
-                        uint8_t get_data[20];
-                    }msg_data;
-                    memcpy(msg_data.get_data,recv_cb->data,recv_cb->data_len);
-                    printf("unicast payload is :");
-                for (int i = 0; i < 5; i++)
+                //ESP_LOGI(TAG, "Receive %dth unicast data from: " MACSTR ", len: %d", recv_seq, MAC2STR(recv_cb->mac_addr), recv_cb->data_len);
+                // printf("unicast payload is :");//data[9]开始为payload
+                for (int i = 9; i < 60; i++)
                 {
-                    printf(" %d",msg_data.data.payload[i]);
+                    printf("%02x",recv_cb->data[i]);
                 }
                 printf("\n");
-
-                // printf("unicast data is :");
-                // for (int i = 10; i < recv_cb->data_len-4; i++)
-                // {
-                //     printf(" %d",recv_cb->data[i]);
-                // }
-                // printf("\n");
             }
             else
             {
@@ -357,7 +340,6 @@ static esp_err_t example_espnow_init(void)
     memset(send_param, 0, sizeof(example_espnow_send_param_t));
     send_param->unicast = false;
     send_param->broadcast = true;
-    send_param->state = 0;
     send_param->magic = esp_random();
     send_param->count = CONFIG_ESPNOW_SEND_COUNT;
     send_param->delay = CONFIG_ESPNOW_SEND_DELAY;
