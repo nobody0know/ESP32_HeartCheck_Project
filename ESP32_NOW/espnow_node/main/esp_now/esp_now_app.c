@@ -8,6 +8,7 @@ static QueueHandle_t s_example_espnow_queue;
 
 static uint8_t s_example_broadcast_mac[ESP_NOW_ETH_ALEN] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 static uint8_t station_mac[ESP_NOW_ETH_ALEN] = {0x58, 0xcf, 0x79, 0x1a, 0x21, 0xb4};
+static uint8_t node_mac[ESP_NOW_ETH_ALEN];
 static uint16_t s_example_espnow_seq[EXAMPLE_ESPNOW_DATA_MAX] = {0, 0};
 
 uint16_t device_id = 0;
@@ -46,6 +47,8 @@ esp_err_t example_espnow_init(void)
         ESP_LOGE(TAG, "Create mutex fail");
         return ESP_FAIL;
     }
+
+    esp_wifi_get_mac(ESP_IF_WIFI_STA, node_mac);
 
     /* Initialize ESPNOW and register sending and receiving callback function. */
     ESP_ERROR_CHECK(esp_now_init());
@@ -104,8 +107,8 @@ esp_err_t example_espnow_init(void)
         return ESP_FAIL;
     }
     memset(send_param, 0, sizeof(example_espnow_send_param_t));
-    send_param->unicast = true;
-    send_param->broadcast = false;
+    send_param->unicast = false;
+    send_param->broadcast = true;
     send_param->magic = esp_random();
     send_param->count = CONFIG_ESPNOW_SEND_COUNT;
     send_param->delay = CONFIG_ESPNOW_SEND_DELAY;
@@ -150,13 +153,6 @@ static void example_espnow_send_cb(const uint8_t *mac_addr, esp_now_send_status_
         ESP_LOGE(TAG, "Send cb arg error");
         return;
     }
-
-    // evt.id = EXAMPLE_ESPNOW_SEND_CB;
-    // memcpy(send_cb->mac_addr, mac_addr, ESP_NOW_ETH_ALEN);
-    // send_cb->status = status;
-    // if (xQueueSend(s_example_espnow_queue, &evt, ESPNOW_MAXDELAY) != pdTRUE) {
-    //     ESP_LOGW(TAG, "Send send queue fail");
-    // }
 }
 
 static void example_espnow_recv_cb(const esp_now_recv_info_t *recv_info, const uint8_t *data, int len)
@@ -203,7 +199,7 @@ static void example_espnow_recv_cb(const esp_now_recv_info_t *recv_info, const u
 }
 
 /* Parse received ESPNOW data. */
-int example_espnow_data_parse(uint8_t *data, uint16_t data_len, uint8_t *state, uint16_t *seq, uint32_t *magic)
+int example_espnow_data_parse(uint8_t *data, uint8_t *payloadbuffer, uint16_t data_len, uint8_t *state, uint16_t *seq, uint32_t *magic, uint8_t *destmac)
 {
     example_espnow_data_t *buf = (example_espnow_data_t *)data;
     uint16_t crc, crc_cal = 0;
@@ -214,6 +210,8 @@ int example_espnow_data_parse(uint8_t *data, uint16_t data_len, uint8_t *state, 
         return -1;
     }
 
+    memcpy(payloadbuffer, buf->payload, ESPNOW_RECEIVE_PAYLOAD_LEN);
+    memcpy(destmac, buf->dest_mac, ESP_NOW_ETH_ALEN);
     *seq = buf->seq_num;
     *magic = buf->magic;
     crc = buf->crc;
@@ -245,7 +243,7 @@ void example_espnow_data_prepare(example_espnow_send_param_t *send_param)
     buf->crc = esp_crc16_le(UINT16_MAX, (uint8_t const *)buf, send_param->len);
 }
 
-//填充ADC数据报文，为减少发送频率，将5次测量结果放一帧发送，报文总长为 帧头9byte + 5 * 8byte = 49
+// 填充ADC数据报文，为减少发送频率，将5次测量结果放一帧发送，报文总长为 帧头9byte + 5 * 8byte = 49
 void espnow_node_data_prepare(example_espnow_send_param_t *send_param)
 {
     payload_msg msg;
@@ -257,6 +255,7 @@ void espnow_node_data_prepare(example_espnow_send_param_t *send_param)
     buf->seq_num = s_example_espnow_seq[buf->type]++;
     buf->crc = 0;
     buf->magic = send_param->magic;
+    memcpy(buf->dest_mac,station_mac,ESP_NOW_ETH_ALEN);
 
     buf->payload[0] = 0xAA;
 
@@ -267,7 +266,7 @@ void espnow_node_data_prepare(example_espnow_send_param_t *send_param)
         msg.payload_data.timestamp = esp_log_timestamp() + time_flag_gap;
         msg.payload_data.adc_value = 2.33f;
 
-        memcpy(&buf->payload[3+i*8], msg.payload_buffer, sizeof(msg.payload_buffer));
+        memcpy(&buf->payload[3 + i * 8], msg.payload_buffer, sizeof(msg.payload_buffer));
     }
 
     buf->crc = esp_crc16_le(UINT16_MAX, (uint8_t const *)buf, send_param->len);
@@ -278,15 +277,17 @@ void espnow_send_node_data(example_espnow_send_param_t *send_param)
     extern bool usermsg_send_start;
     if (usermsg_send_start == 1)
     {
+        //usermsg_send_start = 0;
         /* Delay a while before sending the next data. */
         if (send_param->delay > 0)
         {
             vTaskDelay(send_param->delay / portTICK_PERIOD_MS);
         }
-        memcpy(send_param->dest_mac, station_mac, ESP_NOW_ETH_ALEN);
-        espnow_node_data_prepare(send_param);
 
-        ESP_LOGI(TAG, "send data to " MACSTR "", MAC2STR(send_param->dest_mac));
+        send_param->broadcast = true;
+        send_param->unicast = false;
+        memcpy(send_param->dest_mac,s_example_broadcast_mac, ESP_NOW_ETH_ALEN);
+        espnow_node_data_prepare(send_param);
 
         /* Send the next data after the previous data is sent. */
         if (esp_now_send(send_param->dest_mac, send_param->buffer, send_param->len) != ESP_OK)
@@ -306,10 +307,13 @@ static void example_espnow_task(void *pvParameter)
     uint8_t recv_state = 0;
     uint16_t recv_seq = 0;
     uint32_t recv_magic = 0;
+    uint8_t recv_destmac[ESP_NOW_ETH_ALEN] = {0};
+    uint8_t recv_payloadbuffer[ESPNOW_RECEIVE_PAYLOAD_LEN] = {0};
     bool is_broadcast = false;
     int ret;
 
     vTaskDelay(1000 / portTICK_PERIOD_MS);
+    ESP_LOGI(TAG, "my mac addr is " MACSTR " ", MAC2STR(node_mac));
     ESP_LOGI(TAG, "Start sending broadcast data");
 
     /* Start sending broadcast ESPNOW data. */
@@ -332,36 +336,37 @@ static void example_espnow_task(void *pvParameter)
             {
                 example_espnow_event_recv_cb_t *recv_cb = &evt.info.recv_cb;
 
-                ret = example_espnow_data_parse(recv_cb->data, recv_cb->data_len, &recv_state, &recv_seq, &recv_magic);
+                ret = example_espnow_data_parse(recv_cb->data, recv_payloadbuffer, recv_cb->data_len, &recv_state, &recv_seq, &recv_magic, recv_destmac);
                 free(recv_cb->data);
 
-                if (ret == EXAMPLE_ESPNOW_DATA_UNICAST)
+                if (ret == EXAMPLE_ESPNOW_DATA_BROADCAST)
                 {
-                    ESP_LOGI(TAG, "Receive %dth unicast data from: " MACSTR ", len: %d", recv_seq, MAC2STR(recv_cb->mac_addr), recv_cb->data_len);
-                    union
+                    if (memcmp(recv_destmac, node_mac, ESP_NOW_ETH_ALEN) == 0)
                     {
-                        example_espnow_data_t data;
-                        uint8_t get_data[20];
-                    } msg_data;
-                    memcpy(msg_data.get_data, recv_cb->data, recv_cb->data_len);
-                    printf("unicast payload is :");
-                    for (int i = 0; i < 3; i++)
-                    {
-                        printf(" %d", msg_data.data.payload[i]);
+                        ESP_LOGI(TAG, "get my data from brodcast msg");
+
+                        ESP_LOGI(TAG, "Receive %dth unicast data from: " MACSTR ", len: %d", recv_seq, MAC2STR(recv_cb->mac_addr), recv_cb->data_len);
+
+                        ESP_LOGI(TAG, "get msg to " MACSTR "", MAC2STR(recv_destmac));
+                        printf("unicast payload is :");
+                        for (int i = 0; i < 3; i++)
+                        {
+                            printf(" %d", recv_payloadbuffer[i]);
+                        }
+                        printf("\n");
+                        device_id = recv_payloadbuffer[0];
+
+                        uint32_t time_ms = esp_log_timestamp();
+                        printf("now timestemp is %ld\n", time_ms);
+                        uint32_t get_timestemp = ((((uint32_t)recv_payloadbuffer[4] << 24) | ((uint32_t)recv_payloadbuffer[3] << 16) | ((uint32_t)recv_payloadbuffer[2] << 8) | (uint32_t)recv_payloadbuffer[1]));
+                        printf("get timestemp is %ld\n", get_timestemp);
+                        time_flag_gap = get_timestemp - time_ms;
+
+                        ESP_LOGI(TAG, "SET time flag shift is %ld", time_flag_gap);
+                        ok_led();
+                        /* If receive unicast ESPNOW data, also stop sending broadcast ESPNOW data. */
+                        send_param->broadcast = false;
                     }
-                    printf("\n");
-                    device_id = msg_data.data.payload[0] - 1;
-
-                    uint32_t time_ms = esp_log_timestamp();
-                    printf("now timestemp is %ld\n",time_ms);
-                    uint32_t get_timestemp = ((((uint32_t)msg_data.data.payload[4]<<24) | ((uint32_t)msg_data.data.payload[3]<<16) | ((uint32_t)msg_data.data.payload[2]<<8) | (uint32_t)msg_data.data.payload[1]));
-                    printf("get timestemp is %ld\n",get_timestemp);
-                    time_flag_gap = get_timestemp - time_ms;
-
-                    ESP_LOGI(TAG, "SET time flag shift is %ld", time_flag_gap);
-                    ok_led();
-                    /* If receive unicast ESPNOW data, also stop sending broadcast ESPNOW data. */
-                    send_param->broadcast = false;
                 }
                 else
                 {
@@ -376,4 +381,3 @@ static void example_espnow_task(void *pvParameter)
         }
     }
 }
-

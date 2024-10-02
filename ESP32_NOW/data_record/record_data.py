@@ -66,7 +66,7 @@ def read_from_serial(port, baudrate):
                     message_hex = buffer[:frame_end].strip()  # 读取一帧数据
                     buffer = buffer[frame_end+1:]  # 从缓冲区中移除这一帧数据
                     # print(f"msg len is {len(message_hex)}")
-                    if len(message_hex) == 102:
+                    if len(message_hex) == 90:
                         message = bytes.fromhex(message_hex.decode())  # 将十六进制字符串转换为二进制数据
                         parsed_data = parse_message(message)
                         if parsed_data:

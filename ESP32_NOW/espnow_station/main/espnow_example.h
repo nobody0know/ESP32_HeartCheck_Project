@@ -20,6 +20,7 @@
 #endif
 
 #define ESPNOW_QUEUE_SIZE           6
+#define ESPNOW_PAYLOAD_LEN          60
 
 #define IS_BROADCAST_ADDR(addr) (memcmp(addr, s_example_broadcast_mac, ESP_NOW_ETH_ALEN) == 0)
 
@@ -58,6 +59,7 @@ enum {
 
 /* User defined field of ESPNOW data in this example. */
 typedef struct {
+    uint8_t dest_mac[ESP_NOW_ETH_ALEN];   //MAC address of destination device.
     uint8_t type;                         //Broadcast or unicast ESPNOW data.
     uint16_t seq_num;                     //Sequence number of ESPNOW data.
     uint16_t crc;                         //CRC16 value of ESPNOW data.
@@ -82,7 +84,7 @@ typedef union
     struct 
     {
         uint32_t timestamp;
-        float adc_value
+        float adc_value;
     }payload_data;
     uint8_t payload_buffer[8];
 }payload_msg;
