@@ -28,7 +28,7 @@ def parse_message(message):
         if offset + 8 > len(message):
             break  # 如果剩余数据不足以解析，跳出循环
         try:
-            timestamp, adc_value = struct.unpack('<If', message[offset:offset+8])
+            timestamp, adc_value = struct.unpack('<II', message[offset:offset+8])
         except struct.error:
             continue  # 如果数据不完整或有错误，继续下一轮解析
 

@@ -13,6 +13,7 @@ static uint16_t s_example_espnow_seq[EXAMPLE_ESPNOW_DATA_MAX] = {0, 0};
 
 uint16_t device_id = 0;
 uint32_t time_flag_gap = 0;
+extern QueueHandle_t ADC_queue;
 
 static void example_espnow_send_cb(const uint8_t *mac_addr, esp_now_send_status_t status);
 static void example_espnow_recv_cb(const esp_now_recv_info_t *recv_info, const uint8_t *data, int len);
@@ -127,7 +128,7 @@ esp_err_t example_espnow_init(void)
 
     provision_led();
 
-    xTaskCreate(example_espnow_task, "example_espnow_task", 2048, send_param, 4, NULL);
+    xTaskCreate(example_espnow_task, "example_espnow_task", 4096, send_param, 4, NULL);
 
     return ESP_OK;
 }
@@ -145,8 +146,6 @@ static void example_espnow_deinit(example_espnow_send_param_t *send_param)
  * necessary data to a queue and handle it from a lower priority task. */
 static void example_espnow_send_cb(const uint8_t *mac_addr, esp_now_send_status_t status)
 {
-    example_espnow_event_t evt;
-    example_espnow_event_send_cb_t *send_cb = &evt.info.send_cb;
 
     if (mac_addr == NULL)
     {
@@ -246,7 +245,7 @@ void example_espnow_data_prepare(example_espnow_send_param_t *send_param)
 // 填充ADC数据报文，为减少发送频率，将5次测量结果放一帧发送，报文总长为 帧头9byte + 5 * 8byte = 49
 void espnow_node_data_prepare(example_espnow_send_param_t *send_param)
 {
-    payload_msg msg;
+    // payload_msg msg;
     example_espnow_data_t *buf = (example_espnow_data_t *)send_param->buffer;
 
     assert(send_param->len >= sizeof(example_espnow_data_t));
@@ -261,14 +260,24 @@ void espnow_node_data_prepare(example_espnow_send_param_t *send_param)
 
     memset(&buf->payload[1], device_id, sizeof(device_id));
 
+    //printf("data waiting to be read : %d available spaces: %d \n",uxQueueMessagesWaiting(ADC_queue),uxQueueSpacesAvailable(ADC_queue));//队列剩余空间//队列中待读取的消息uxQueueSpacesAvailable(ADC_queue));//队列剩余空间
+
+    if(uxQueueMessagesWaiting(ADC_queue) == 0)
+    {
+        ESP_LOGE(TAG,"adc queue may have something error");
+    }
+    uint8_t rx_buffer[100];
     for (int i = 0; i < 5; i++)
     {
-        msg.payload_data.timestamp = esp_log_timestamp() + time_flag_gap;
-        msg.payload_data.adc_value = 2.33f;
-
-        memcpy(&buf->payload[3 + i * 8], msg.payload_buffer, sizeof(msg.payload_buffer));
+        memset(rx_buffer,0,sizeof(rx_buffer));
+        if(xQueueReceive(ADC_queue,rx_buffer,10))
+        {
+            memcpy(&buf->payload[3 + i * 8], rx_buffer, 8);
+            payload_msg * temp = (payload_msg *)rx_buffer;
+            ESP_LOGI(TAG, "[%ld] ADC Channel[0] Cali Voltage: %ld mV", temp->payload_data.timestamp,temp->payload_data.adc_value);
+        }
     }
-
+    //printf("data waiting to be read : %d available spaces: %d \n",uxQueueMessagesWaiting(ADC_queue),uxQueueSpacesAvailable(ADC_queue));
     buf->crc = esp_crc16_le(UINT16_MAX, (uint8_t const *)buf, send_param->len);
 }
 
@@ -309,7 +318,6 @@ static void example_espnow_task(void *pvParameter)
     uint32_t recv_magic = 0;
     uint8_t recv_destmac[ESP_NOW_ETH_ALEN] = {0};
     uint8_t recv_payloadbuffer[ESPNOW_RECEIVE_PAYLOAD_LEN] = {0};
-    bool is_broadcast = false;
     int ret;
 
     vTaskDelay(1000 / portTICK_PERIOD_MS);

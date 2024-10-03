@@ -15,6 +15,7 @@
 #include <string.h>
 #include <assert.h>
 #include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
 #include "freertos/semphr.h"
 #include "freertos/timers.h"
 #include "nvs_flash.h"
@@ -105,7 +106,7 @@ typedef union
     struct 
     {
         uint32_t timestamp;
-        float adc_value;
+        uint32_t adc_value;
     }payload_data;
     uint8_t payload_buffer[8];
 }payload_msg;

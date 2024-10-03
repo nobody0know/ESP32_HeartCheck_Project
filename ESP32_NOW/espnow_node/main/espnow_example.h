@@ -3,6 +3,7 @@
 #include <string.h>
 #include <assert.h>
 #include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
 #include "freertos/semphr.h"
 #include "freertos/timers.h"
 #include "nvs_flash.h"
@@ -17,4 +18,5 @@
 #include "board.h"
 #include "ws2812/ws2812.h"
 #include "esp_now_app.h"
+#include "adc/adc.h"
 

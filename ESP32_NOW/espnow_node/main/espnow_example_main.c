@@ -1,5 +1,6 @@
 #include "espnow_example.h"
-
+QueueHandle_t ADC_queue;
+static const char *TAG = "MAIN INIT";
 
 void app_main(void)
 {
@@ -13,7 +14,15 @@ void app_main(void)
     ESP_ERROR_CHECK(ret);
 
     board_init();
+
+    ADC_queue = xQueueCreate(30,80);
+    if(ADC_queue == 0)
+    {
+        ESP_LOGE(TAG,"queue create failed!");
+    }
+
     xTaskCreate(WS2812_Task,"WS2812_Task",3072,NULL,2,NULL);
+    xTaskCreate(ADC_Task,"ADC_Task",4096,NULL,2,NULL);
 
     example_wifi_init();
     example_espnow_init();

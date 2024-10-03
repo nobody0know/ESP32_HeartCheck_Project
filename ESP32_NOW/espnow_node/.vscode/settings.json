@@ -10,6 +10,9 @@
     "iot_button.h": "c",
     "esp_now_app.h": "c",
     "stdlib.h": "c",
-    "espnow_example.h": "c"
+    "espnow_example.h": "c",
+    "adc.h": "c",
+    "queue.h": "c",
+    "freertos.h": "c"
   }
 }
