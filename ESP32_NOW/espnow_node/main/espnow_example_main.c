@@ -21,10 +21,17 @@ void app_main(void)
         ESP_LOGE(TAG,"queue create failed!");
     }
 
-    xTaskCreate(WS2812_Task,"WS2812_Task",3072,NULL,1,NULL);
+    xTaskCreate(WS2812_Task,"WS2812_Task",3072,NULL,2,NULL);
     xTaskCreate(ADC_Task,"ADC_Task",4096,NULL,2,NULL);
 
-    example_wifi_init();
+
+    ret = wifi_sta_init();
+    if(ret != ESP_OK)
+    {
+        ESP_LOGE(TAG,"ESP WIFI init failed!");
+    }
+    
     example_espnow_init();
 
+    
 }

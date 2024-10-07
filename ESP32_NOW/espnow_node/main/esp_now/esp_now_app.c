@@ -22,23 +22,6 @@ static void example_espnow_task(void *pvParameter);
 static void example_espnow_deinit(example_espnow_send_param_t *send_param);
 void espnow_send_node_data();
 
-/* WiFi should start before using ESPNOW */
-void example_wifi_init(void)
-{
-    ESP_ERROR_CHECK(esp_netif_init());
-    ESP_ERROR_CHECK(esp_event_loop_create_default());
-    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
-    ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_RAM));
-    ESP_ERROR_CHECK(esp_wifi_set_mode(ESPNOW_WIFI_MODE));
-    ESP_ERROR_CHECK(esp_wifi_start());
-    ESP_ERROR_CHECK(esp_wifi_set_channel(CONFIG_ESPNOW_CHANNEL, WIFI_SECOND_CHAN_NONE));
-    //ESP_ERROR_CHECK(esp_wifi_config_espnow_rate(WIFI_IF_STA,WIFI_PHY_RATE_11M_L));
-#if CONFIG_ESPNOW_ENABLE_LONG_RANGE
-    ESP_ERROR_CHECK(esp_wifi_set_protocol(ESPNOW_WIFI_IF, WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N | WIFI_PROTOCOL_LR));
-#endif
-}
-
 esp_err_t example_espnow_init(void)
 {
     example_espnow_send_param_t *send_param;
@@ -49,6 +32,7 @@ esp_err_t example_espnow_init(void)
         return ESP_FAIL;
     }
 
+    //ESP_ERROR_CHECK(esp_wifi_set_channel(CONFIG_ESPNOW_CHANNEL, WIFI_SECOND_CHAN_NONE));
     esp_wifi_get_mac(ESP_IF_WIFI_STA, node_mac);
 
     /* Initialize ESPNOW and register sending and receiving callback function. */
@@ -78,25 +62,6 @@ esp_err_t example_espnow_init(void)
     memcpy(peer->peer_addr, s_example_broadcast_mac, ESP_NOW_ETH_ALEN);
     ESP_ERROR_CHECK(esp_now_add_peer(peer));
     free(peer);
-
-    /* If MAC address does not exist in peer list, add it to peer list. */
-    // if (esp_now_is_peer_exist(station_mac) == false)
-    // {
-    //     esp_now_peer_info_t *peer = malloc(sizeof(esp_now_peer_info_t));
-    //     if (peer == NULL)
-    //     {
-    //         ESP_LOGE(TAG, "Malloc peer information fail");
-    //     }
-    //     ESP_LOGI(TAG, "Add station as peer");
-    //     memset(peer, 0, sizeof(esp_now_peer_info_t));
-    //     peer->channel = CONFIG_ESPNOW_CHANNEL;
-    //     peer->ifidx = ESPNOW_WIFI_IF;
-    //     peer->encrypt = true;
-    //     memcpy(peer->lmk, CONFIG_ESPNOW_LMK, ESP_NOW_KEY_LEN);
-    //     memcpy(peer->peer_addr, station_mac, ESP_NOW_ETH_ALEN);
-    //     ESP_ERROR_CHECK(esp_now_add_peer(peer));
-    //     free(peer);
-    // }
 
     /* Initialize sending parameters. */
     send_param = malloc(sizeof(example_espnow_send_param_t));
@@ -346,7 +311,8 @@ static void example_espnow_task(void *pvParameter)
 
     while (1)
     {
-        espnow_send_node_data(send_param);
+        //espnow_send_node_data(send_param);
+        vTaskDelay(pdMS_TO_TICKS(100));
         if (xQueueReceive(s_example_espnow_queue, &evt, 0) == pdTRUE)
         {
             switch (evt.id)
@@ -386,7 +352,6 @@ static void example_espnow_task(void *pvParameter)
                         memcpy(station_mac,&recv_payloadbuffer[5],sizeof(station_mac));
                         ESP_LOGI(TAG, "SET station mac is "MACSTR" ", MAC2STR(station_mac));
 
-                        ok_led();
                         /* If receive unicast ESPNOW data, also stop sending broadcast ESPNOW data. */
                         send_param->broadcast = false;
                     }

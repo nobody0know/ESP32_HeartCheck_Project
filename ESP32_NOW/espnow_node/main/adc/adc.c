@@ -10,12 +10,10 @@
 #include "freertos/task.h"
 #include "soc/soc_caps.h"
 #include "esp_log.h"
-#include "esp_adc/adc_oneshot.h"
-#include "esp_adc/adc_cali.h"
-#include "esp_adc/adc_cali_scheme.h"
 #include "esp_now/esp_now_app.h"
+#include "adc/adc.h"
 
-const static char *TAG = "EXAMPLE";
+const static char *TAG = "ADC";
 
 /*---------------------------------------------------------------
         ADC General Macros

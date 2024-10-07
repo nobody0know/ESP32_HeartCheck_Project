@@ -16,6 +16,13 @@
     "freertos.h": "c",
     "esp_log.h": "c",
     "gpio.h": "c",
-    "esp_rom_sys.h": "c"
+    "esp_rom_sys.h": "c",
+    "semphr.h": "c",
+    "task.h": "c",
+    "timers.h": "c",
+    "wifi.h": "c",
+    "time.h": "c",
+    "udp_server.h": "c",
+    "ws2812.h": "c"
   }
 }

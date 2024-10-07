@@ -12,8 +12,8 @@
 #include "freertos/queue.h"
 #include "freertos/task.h"
 #include "freertos/semphr.h"
-#include "esp_adc/adc_continuous.h"
 #include "esp_now/esp_now_app.h"
+#include "esp_adc/adc_oneshot.h"
 #include "esp_adc/adc_cali.h"
 #include "esp_adc/adc_cali_scheme.h"
 
