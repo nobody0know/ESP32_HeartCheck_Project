@@ -24,17 +24,17 @@ def parse_message(message):
     data_points = []
     offset = 3
 
-    for i in range(5):  # 循环解析5组（时间戳 + ADC 数据）
+    for i in range(25):  # 循环解析5组（时间戳 + ADC 数据）
         if offset + 8 > len(message):
             break  # 如果剩余数据不足以解析，跳出循环
         try:
-            timestamp, adc_value = struct.unpack('<II', message[offset:offset+8])
+            timestamp, adc_value = struct.unpack('<IH', message[offset:offset+6])
         except struct.error:
             continue  # 如果数据不完整或有错误，继续下一轮解析
 
         # timestamp = datetime.utcfromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
         data_points.append((timestamp, adc_value))
-        offset += 8
+        offset += 6
 
     return device_id, data_points
 
@@ -66,7 +66,7 @@ def read_from_serial(port, baudrate):
                     message_hex = buffer[:frame_end].strip()  # 读取一帧数据
                     buffer = buffer[frame_end+1:]  # 从缓冲区中移除这一帧数据
                     # print(f"msg len is {len(message_hex)}")
-                    if len(message_hex) == 90:
+                    if len(message_hex) == 330:
                         message = bytes.fromhex(message_hex.decode())  # 将十六进制字符串转换为二进制数据
                         parsed_data = parse_message(message)
                         if parsed_data:
@@ -86,7 +86,7 @@ def read_from_serial(port, baudrate):
         data_frame.to_excel("output.xlsx")
 
 if __name__ == "__main__":
-    port = 'COM21'  # 根据实际串口号调整
+    port = 'COM27'  # 根据实际串口号调整
     baudrate = 115200  # 根据实际波特率调整
 
     # 读取串口数据并解析

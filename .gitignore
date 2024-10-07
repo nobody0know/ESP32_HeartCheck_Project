@@ -17,3 +17,5 @@ ESP32_BLE_MESH/vendor_client/dependencies.lock
 
 ESP32_NOW/espnow_station/build
 ESP32_NOW/espnow_node/build
+
+flash_download_tool_3.9.7_2

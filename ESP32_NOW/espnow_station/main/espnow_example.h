@@ -19,8 +19,8 @@
 #define ESPNOW_WIFI_IF   ESP_IF_WIFI_AP
 #endif
 
-#define ESPNOW_QUEUE_SIZE           6
-#define ESPNOW_PAYLOAD_LEN          60
+#define ESPNOW_QUEUE_SIZE           20
+#define ESPNOW_PAYLOAD_LEN          180
 
 #define IS_BROADCAST_ADDR(addr) (memcmp(addr, s_example_broadcast_mac, ESP_NOW_ETH_ALEN) == 0)
 
@@ -84,8 +84,8 @@ typedef union
     struct 
     {
         uint32_t timestamp;
-        float adc_value;
+        uint16_t adc_value;
     }payload_data;
-    uint8_t payload_buffer[8];
+    uint8_t payload_buffer[6];
 }payload_msg;
 #endif

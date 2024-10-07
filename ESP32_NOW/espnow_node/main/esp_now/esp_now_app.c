@@ -7,7 +7,7 @@ static const char *TAG = "espnow_example";
 static QueueHandle_t s_example_espnow_queue;
 
 static uint8_t s_example_broadcast_mac[ESP_NOW_ETH_ALEN] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-static uint8_t station_mac[ESP_NOW_ETH_ALEN] = {0x58, 0xcf, 0x79, 0x1a, 0x21, 0xb4};
+static uint8_t station_mac[ESP_NOW_ETH_ALEN];// = {0x88, 0x13, 0xbf, 0x0a, 0xc9, 0xe0};
 static uint8_t node_mac[ESP_NOW_ETH_ALEN];
 static uint16_t s_example_espnow_seq[EXAMPLE_ESPNOW_DATA_MAX] = {0, 0};
 
@@ -33,7 +33,7 @@ void example_wifi_init(void)
     ESP_ERROR_CHECK(esp_wifi_set_mode(ESPNOW_WIFI_MODE));
     ESP_ERROR_CHECK(esp_wifi_start());
     ESP_ERROR_CHECK(esp_wifi_set_channel(CONFIG_ESPNOW_CHANNEL, WIFI_SECOND_CHAN_NONE));
-
+    //ESP_ERROR_CHECK(esp_wifi_config_espnow_rate(WIFI_IF_STA,WIFI_PHY_RATE_11M_L));
 #if CONFIG_ESPNOW_ENABLE_LONG_RANGE
     ESP_ERROR_CHECK(esp_wifi_set_protocol(ESPNOW_WIFI_IF, WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N | WIFI_PROTOCOL_LR));
 #endif
@@ -80,23 +80,23 @@ esp_err_t example_espnow_init(void)
     free(peer);
 
     /* If MAC address does not exist in peer list, add it to peer list. */
-    if (esp_now_is_peer_exist(station_mac) == false)
-    {
-        esp_now_peer_info_t *peer = malloc(sizeof(esp_now_peer_info_t));
-        if (peer == NULL)
-        {
-            ESP_LOGE(TAG, "Malloc peer information fail");
-        }
-        ESP_LOGI(TAG, "Add station as peer");
-        memset(peer, 0, sizeof(esp_now_peer_info_t));
-        peer->channel = CONFIG_ESPNOW_CHANNEL;
-        peer->ifidx = ESPNOW_WIFI_IF;
-        peer->encrypt = true;
-        memcpy(peer->lmk, CONFIG_ESPNOW_LMK, ESP_NOW_KEY_LEN);
-        memcpy(peer->peer_addr, station_mac, ESP_NOW_ETH_ALEN);
-        ESP_ERROR_CHECK(esp_now_add_peer(peer));
-        free(peer);
-    }
+    // if (esp_now_is_peer_exist(station_mac) == false)
+    // {
+    //     esp_now_peer_info_t *peer = malloc(sizeof(esp_now_peer_info_t));
+    //     if (peer == NULL)
+    //     {
+    //         ESP_LOGE(TAG, "Malloc peer information fail");
+    //     }
+    //     ESP_LOGI(TAG, "Add station as peer");
+    //     memset(peer, 0, sizeof(esp_now_peer_info_t));
+    //     peer->channel = CONFIG_ESPNOW_CHANNEL;
+    //     peer->ifidx = ESPNOW_WIFI_IF;
+    //     peer->encrypt = true;
+    //     memcpy(peer->lmk, CONFIG_ESPNOW_LMK, ESP_NOW_KEY_LEN);
+    //     memcpy(peer->peer_addr, station_mac, ESP_NOW_ETH_ALEN);
+    //     ESP_ERROR_CHECK(esp_now_add_peer(peer));
+    //     free(peer);
+    // }
 
     /* Initialize sending parameters. */
     send_param = malloc(sizeof(example_espnow_send_param_t));
@@ -127,6 +127,8 @@ esp_err_t example_espnow_init(void)
     example_espnow_data_prepare(send_param);
 
     provision_led();
+
+    // esp_wifi_set_ps(WIFI_PS_MAX_MODEM);//配网完成后进入休眠模式
 
     xTaskCreate(example_espnow_task, "example_espnow_task", 4096, send_param, 4, NULL);
 
@@ -243,7 +245,7 @@ void example_espnow_data_prepare(example_espnow_send_param_t *send_param)
 }
 
 // 填充ADC数据报文，为减少发送频率，将5次测量结果放一帧发送，报文总长为 帧头9byte + 5 * 8byte = 49
-void espnow_node_data_prepare(example_espnow_send_param_t *send_param)
+int espnow_node_data_prepare(example_espnow_send_param_t *send_param)
 {
     // payload_msg msg;
     example_espnow_data_t *buf = (example_espnow_data_t *)send_param->buffer;
@@ -254,31 +256,33 @@ void espnow_node_data_prepare(example_espnow_send_param_t *send_param)
     buf->seq_num = s_example_espnow_seq[buf->type]++;
     buf->crc = 0;
     buf->magic = send_param->magic;
-    memcpy(buf->dest_mac,station_mac,ESP_NOW_ETH_ALEN);
+    memcpy(buf->dest_mac, station_mac, ESP_NOW_ETH_ALEN);
 
     buf->payload[0] = 0xAA;
 
     memset(&buf->payload[1], device_id, sizeof(device_id));
 
-    //printf("data waiting to be read : %d available spaces: %d \n",uxQueueMessagesWaiting(ADC_queue),uxQueueSpacesAvailable(ADC_queue));//队列剩余空间//队列中待读取的消息uxQueueSpacesAvailable(ADC_queue));//队列剩余空间
+    // printf("data waiting to be read : %d available spaces: %d \n",uxQueueMessagesWaiting(ADC_queue),uxQueueSpacesAvailable(ADC_queue));//队列剩余空间//队列中待读取的消息uxQueueSpacesAvailable(ADC_queue));//队列剩余空间
 
-    if(uxQueueMessagesWaiting(ADC_queue) == 0)
+    if (uxQueueMessagesWaiting(ADC_queue) == 0)
     {
-        ESP_LOGE(TAG,"adc queue may have something error");
+        ESP_LOGE(TAG, "adc queue may have something error");
+        return 0;
     }
     uint8_t rx_buffer[100];
-    for (int i = 0; i < 5; i++)
+    for (int i = 0; i < 25; i++)
     {
-        memset(rx_buffer,0,sizeof(rx_buffer));
-        if(xQueueReceive(ADC_queue,rx_buffer,10))
+        memset(rx_buffer, 0, sizeof(rx_buffer));
+        if (xQueueReceive(ADC_queue, rx_buffer, 10))
         {
-            memcpy(&buf->payload[3 + i * 8], rx_buffer, 8);
-            payload_msg * temp = (payload_msg *)rx_buffer;
-            ESP_LOGI(TAG, "[%ld] ADC Channel[0] Cali Voltage: %ld mV", temp->payload_data.timestamp,temp->payload_data.adc_value);
+            memcpy(&buf->payload[3 + i * 6], rx_buffer, 6);
+            payload_msg *temp = (payload_msg *)rx_buffer;
+            //ESP_LOGI(TAG, "[%ld] ADC Channel[0] Cali Voltage: %ld mV", temp->payload_data.timestamp,temp->payload_data.adc_value);
         }
     }
-    //printf("data waiting to be read : %d available spaces: %d \n",uxQueueMessagesWaiting(ADC_queue),uxQueueSpacesAvailable(ADC_queue));
+    // printf("data waiting to be read : %d available spaces: %d \n",uxQueueMessagesWaiting(ADC_queue),uxQueueSpacesAvailable(ADC_queue));
     buf->crc = esp_crc16_le(UINT16_MAX, (uint8_t const *)buf, send_param->len);
+    return 1;
 }
 
 void espnow_send_node_data(example_espnow_send_param_t *send_param)
@@ -286,7 +290,7 @@ void espnow_send_node_data(example_espnow_send_param_t *send_param)
     extern bool usermsg_send_start;
     if (usermsg_send_start == 1)
     {
-        //usermsg_send_start = 0;
+        // usermsg_send_start = 0;
         /* Delay a while before sending the next data. */
         if (send_param->delay > 0)
         {
@@ -295,13 +299,20 @@ void espnow_send_node_data(example_espnow_send_param_t *send_param)
 
         send_param->broadcast = true;
         send_param->unicast = false;
-        memcpy(send_param->dest_mac,s_example_broadcast_mac, ESP_NOW_ETH_ALEN);
-        espnow_node_data_prepare(send_param);
-
-        /* Send the next data after the previous data is sent. */
-        if (esp_now_send(send_param->dest_mac, send_param->buffer, send_param->len) != ESP_OK)
+        memcpy(send_param->dest_mac, s_example_broadcast_mac, ESP_NOW_ETH_ALEN);
+        if (espnow_node_data_prepare(send_param))
         {
-            ESP_LOGE(TAG, "Send error");
+            /* Send the next data after the previous data is sent. */
+            esp_err_t esp_now_send_err;
+            esp_now_send_err = esp_now_send(send_param->dest_mac, send_param->buffer, send_param->len);
+            if (esp_now_send_err != ESP_OK)
+            {
+                ESP_LOGE(TAG, "Send error reason is :%x",esp_now_send_err);
+            }
+        }
+        else
+        {
+            vTaskDelay(100 / portTICK_PERIOD_MS);
         }
     }
     else
@@ -357,9 +368,9 @@ static void example_espnow_task(void *pvParameter)
 
                         ESP_LOGI(TAG, "get msg to " MACSTR "", MAC2STR(recv_destmac));
                         printf("unicast payload is :");
-                        for (int i = 0; i < 3; i++)
+                        for (int i = 0; i < 9; i++)
                         {
-                            printf(" %d", recv_payloadbuffer[i]);
+                            printf(" %02x", recv_payloadbuffer[i]);
                         }
                         printf("\n");
                         device_id = recv_payloadbuffer[0];
@@ -371,6 +382,10 @@ static void example_espnow_task(void *pvParameter)
                         time_flag_gap = get_timestemp - time_ms;
 
                         ESP_LOGI(TAG, "SET time flag shift is %ld", time_flag_gap);
+
+                        memcpy(station_mac,&recv_payloadbuffer[5],sizeof(station_mac));
+                        ESP_LOGI(TAG, "SET station mac is "MACSTR" ", MAC2STR(station_mac));
+
                         ok_led();
                         /* If receive unicast ESPNOW data, also stop sending broadcast ESPNOW data. */
                         send_param->broadcast = false;

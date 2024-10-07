@@ -1,12 +1,13 @@
 {
   "C_Cpp.intelliSenseEngine": "default",
-  "idf.adapterTargetName": "esp32c3",
+  "idf.adapterTargetName": "esp32",
   "idf.openOcdConfigs": [
-    "board/esp32c3-builtin.cfg"
+    "board/esp32-bridge.cfg"
   ],
   "idf.portWin": "COM27",
   "idf.flashType": "UART",
   "files.associations": {
-    "espnow_example.h": "c"
+    "espnow_example.h": "c",
+    "uart.h": "c"
   }
 }

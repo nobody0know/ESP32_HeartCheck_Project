@@ -30,6 +30,7 @@
 #include "esp_crc.h"
 #include "espnow_example.h"
 #include <sys/time.h>
+#include "driver/uart.h"
 
 #define ESPNOW_MAXDELAY 512
 #define USER_MAXDEVICES 50
@@ -59,6 +60,7 @@ static void example_wifi_init(void)
     ESP_ERROR_CHECK(esp_wifi_set_mode(ESPNOW_WIFI_MODE));
     ESP_ERROR_CHECK(esp_wifi_start());
     ESP_ERROR_CHECK(esp_wifi_set_channel(CONFIG_ESPNOW_CHANNEL, WIFI_SECOND_CHAN_NONE));
+    //ESP_ERROR_CHECK(esp_wifi_config_espnow_rate(WIFI_IF_STA,WIFI_PHY_RATE_11M_L));
 
 #if CONFIG_ESPNOW_ENABLE_LONG_RANGE
     ESP_ERROR_CHECK(esp_wifi_set_protocol(ESPNOW_WIFI_IF, WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N | WIFI_PROTOCOL_LR));
@@ -79,13 +81,6 @@ static void example_espnow_send_cb(const uint8_t *mac_addr, esp_now_send_status_
         return;
     }
 
-    // evt.id = EXAMPLE_ESPNOW_SEND_CB;
-    // memcpy(send_cb->mac_addr, mac_addr, ESP_NOW_ETH_ALEN);
-    // send_cb->status = status;
-    // if (xQueueSend(s_example_espnow_queue, &evt, ESPNOW_MAXDELAY) != pdTRUE)
-    // {
-    //     ESP_LOGW(TAG, "Send send queue fail");
-    // }
 }
 
 static void example_espnow_recv_cb(const esp_now_recv_info_t *recv_info, const uint8_t *data, int len)
@@ -215,6 +210,8 @@ void device_prov_prepare(example_espnow_send_param_t *send_param, uint8_t node_m
     uint32_t time_ms = esp_log_timestamp();
 
     memcpy(&buf->payload[1], &time_ms, sizeof(uint32_t));
+
+    memcpy(&buf->payload[5],station_mac,sizeof(station_mac));
     printf("prov pay load is :%d\n", buf->payload[0]);
     buf->crc = esp_crc16_le(UINT16_MAX, (uint8_t const *)buf, send_param->len);
 }
@@ -243,7 +240,7 @@ static void example_espnow_task(void *pvParameter)
         case EXAMPLE_ESPNOW_RECV_CB:
         {
             example_espnow_event_recv_cb_t *recv_cb = &evt.info.recv_cb;
-
+            memset(recv_payloadbuffer,0,sizeof(recv_payloadbuffer));
             ret = example_espnow_data_parse(recv_cb->data, recv_payloadbuffer, recv_cb->data_len, &recv_state, &recv_seq, &recv_magic, recv_destmac);
             free(recv_cb->data);
             if (ret == EXAMPLE_ESPNOW_DATA_BROADCAST)
@@ -252,11 +249,11 @@ static void example_espnow_task(void *pvParameter)
                 {
                     // ESP_LOGI(TAG, "Receive %dth unicast data from: " MACSTR ", len: %d", recv_seq, MAC2STR(recv_cb->mac_addr), recv_cb->data_len);
                     //  printf("unicast payload is :");//data[9]开始为payload
-                    for (int i = 0; i < sizeof(recv_payloadbuffer); i++)
-                    {
-                        printf("%02x", recv_payloadbuffer[i]);
-                    }
-                    printf("\n");
+                    // for (int i = 0; i < sizeof(recv_payloadbuffer); i++)
+                    // {
+                    //     printf("%02x", recv_payloadbuffer[i]);
+                    // }
+                    // printf("\n");
                 }
                 else
                 {
@@ -304,6 +301,7 @@ static esp_err_t example_espnow_init(void)
     }
 
     esp_wifi_get_mac(ESP_IF_WIFI_STA, station_mac);
+    ESP_LOGI(TAG, "my mac is "MACSTR"",MAC2STR(station_mac));
 
     /* Initialize ESPNOW and register sending and receiving callback function. */
     ESP_ERROR_CHECK(esp_now_init());
@@ -361,7 +359,7 @@ static esp_err_t example_espnow_init(void)
     memcpy(send_param->dest_mac, s_example_broadcast_mac, ESP_NOW_ETH_ALEN);
     example_espnow_data_prepare(send_param);
 
-    xTaskCreate(example_espnow_task, "example_espnow_task", 2048, send_param, 4, NULL);
+    xTaskCreate(example_espnow_task, "example_espnow_task", 4096, send_param, 4, NULL);
 
     return ESP_OK;
 }

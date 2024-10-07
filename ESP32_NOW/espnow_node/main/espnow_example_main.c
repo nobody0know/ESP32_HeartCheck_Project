@@ -15,13 +15,13 @@ void app_main(void)
 
     board_init();
 
-    ADC_queue = xQueueCreate(30,80);
+    ADC_queue = xQueueCreate(100,8);
     if(ADC_queue == 0)
     {
         ESP_LOGE(TAG,"queue create failed!");
     }
 
-    xTaskCreate(WS2812_Task,"WS2812_Task",3072,NULL,2,NULL);
+    xTaskCreate(WS2812_Task,"WS2812_Task",3072,NULL,1,NULL);
     xTaskCreate(ADC_Task,"ADC_Task",4096,NULL,2,NULL);
 
     example_wifi_init();
