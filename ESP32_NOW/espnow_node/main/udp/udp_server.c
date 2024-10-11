@@ -55,7 +55,7 @@ int udp_data_prepare(uint8_t *databuffer)
         return 0;
     }
     uint8_t rx_buffer[100];
-    for (int i = 0; i < 25; i++)
+    for (int i = 0; i < 9; i++)
     {
         memset(rx_buffer, 0, sizeof(rx_buffer));
         if (xQueueReceive(ADC_queue, rx_buffer, 10))

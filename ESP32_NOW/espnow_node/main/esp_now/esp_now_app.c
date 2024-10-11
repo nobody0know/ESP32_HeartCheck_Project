@@ -32,7 +32,7 @@ esp_err_t example_espnow_init(void)
         return ESP_FAIL;
     }
 
-    //ESP_ERROR_CHECK(esp_wifi_set_channel(CONFIG_ESPNOW_CHANNEL, WIFI_SECOND_CHAN_NONE));
+    ESP_ERROR_CHECK(esp_wifi_set_channel(CONFIG_ESPNOW_CHANNEL, WIFI_SECOND_CHAN_NONE));
     esp_wifi_get_mac(ESP_IF_WIFI_STA, node_mac);
 
     /* Initialize ESPNOW and register sending and receiving callback function. */
@@ -60,6 +60,7 @@ esp_err_t example_espnow_init(void)
     peer->ifidx = ESPNOW_WIFI_IF;
     peer->encrypt = false;
     memcpy(peer->peer_addr, s_example_broadcast_mac, ESP_NOW_ETH_ALEN);
+
     ESP_ERROR_CHECK(esp_now_add_peer(peer));
     free(peer);
 
@@ -90,8 +91,6 @@ esp_err_t example_espnow_init(void)
     }
     memcpy(send_param->dest_mac, s_example_broadcast_mac, ESP_NOW_ETH_ALEN);
     example_espnow_data_prepare(send_param);
-
-    provision_led();
 
     // esp_wifi_set_ps(WIFI_PS_MAX_MODEM);//配网完成后进入休眠模式
 
@@ -351,6 +350,9 @@ static void example_espnow_task(void *pvParameter)
 
                         memcpy(station_mac,&recv_payloadbuffer[5],sizeof(station_mac));
                         ESP_LOGI(TAG, "SET station mac is "MACSTR" ", MAC2STR(station_mac));
+                        
+                        provision_led();
+                        esp_wifi_connect();
 
                         /* If receive unicast ESPNOW data, also stop sending broadcast ESPNOW data. */
                         send_param->broadcast = false;

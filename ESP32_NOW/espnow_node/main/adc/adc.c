@@ -127,11 +127,13 @@ void ADC_Task(void *pvParameter)
         // ESP_LOGI(TAG, "ADC%d Channel[%d] Raw Data: %d", ADC_UNIT_1 + 1, EXAMPLE_ADC1_CHAN0, adc_raw[0][0]);
         if (do_calibration1_chan0)
         {
-            ESP_ERROR_CHECK(adc_cali_raw_to_voltage(adc1_cali_chan0_handle, adc_raw[0][0], &voltage[0][0]));
-            // ESP_LOGI(TAG, "ADC%d Channel[%d] Cali Voltage: %d mV", ADC_UNIT_1 + 1, EXAMPLE_ADC1_CHAN0, voltage[0][0]);
-            adc_true_value.payload_data.adc_value = (uint16_t)voltage[0][0];
-            adc_true_value.payload_data.timestamp = esp_log_timestamp() + time_flag_gap;
-            xQueueSend(ADC_queue, &adc_true_value, 10);
+            {
+                ESP_ERROR_CHECK(adc_cali_raw_to_voltage(adc1_cali_chan0_handle, adc_raw[0][0], &voltage[0][0]));
+                // ESP_LOGI(TAG, "ADC%d Channel[%d] Cali Voltage: %d mV", ADC_UNIT_1 + 1, EXAMPLE_ADC1_CHAN0, voltage[0][0]);
+                adc_true_value.payload_data.adc_value = (uint16_t)voltage[0][0];
+                adc_true_value.payload_data.timestamp = esp_log_timestamp() + time_flag_gap;
+                xQueueSend(ADC_queue, &adc_true_value, 10);
+            }
         }
         vTaskDelay(pdMS_TO_TICKS(1));
     }

@@ -17,6 +17,7 @@
 #include "esp_now.h"
 #include "esp_crc.h"
 #include <sys/time.h>
+#include "esp_now/esp_now_app.h"
 
 #define DEFAULT_WIFI_SSID           "602"
 #define DEFAULT_WIFI_PASSWORD       "38188477"
@@ -34,9 +35,6 @@ static void event_handler(void* arg, esp_event_base_t event_base,int32_t event_i
     {
         switch (event_id)
         {
-        case WIFI_EVENT_STA_START:      //WIFI以STA模式启动后触发此事件
-            esp_wifi_connect();         //启动WIFI连接
-            break;
         case WIFI_EVENT_STA_CONNECTED:  //WIFI连上路由器后，触发此事件
             ESP_LOGI(TAG, "connected to AP");
             break;
@@ -78,11 +76,10 @@ esp_err_t wifi_sta_init(void)
     wifi_config_t wifi_config = {
         .sta = {
             .ssid = DEFAULT_WIFI_SSID,
-            .password = DEFAULT_WIFI_PASSWORD
+            .password = DEFAULT_WIFI_PASSWORD,
         },
     };
 
-    
     //启动WIFI
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA) );         //设置工作模式为STA
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config) );   //设置wifi配置

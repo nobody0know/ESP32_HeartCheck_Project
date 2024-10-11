@@ -30,8 +30,9 @@ void app_main(void)
     {
         ESP_LOGE(TAG,"ESP WIFI init failed!");
     }
-    
     example_espnow_init();
+    
+    
 
     
 }
