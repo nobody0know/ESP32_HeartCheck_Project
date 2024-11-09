@@ -18,6 +18,7 @@
 #include "nvs_flash.h"
 #include "esp_now_app.h"
 #include "smart_config.h"
+#include "lcd_hw.h"
 
 /* FreeRTOS event group to signal when we are connected & ready to make a request */
 EventGroupHandle_t s_wifi_event_group;
@@ -32,6 +33,8 @@ void app_main(void)
         ret = nvs_flash_init();
     }
     ESP_ERROR_CHECK(ret);
+
+    lcd_hw_init();
 
     smart_config_init();
 

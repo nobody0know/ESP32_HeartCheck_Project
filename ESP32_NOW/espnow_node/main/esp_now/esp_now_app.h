@@ -42,7 +42,7 @@
 
 #define ESPNOW_QUEUE_SIZE           6
 
-#define ESPNOW_RECEIVE_PAYLOAD_LEN          11
+#define ESPNOW_RECEIVE_PAYLOAD_LEN          100
 
 #define IS_BROADCAST_ADDR(addr) (memcmp(addr, s_example_broadcast_mac, ESP_NOW_ETH_ALEN) == 0)
 

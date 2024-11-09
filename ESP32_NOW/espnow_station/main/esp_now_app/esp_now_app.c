@@ -41,7 +41,7 @@ static uint16_t s_espnow_seq[EXAMPLE_ESPNOW_DATA_MAX] = {0, 0};
 static uint8_t total_nodedevices_num = 0;
 static uint8_t total_nodedevices_mac[USER_MAXDEVICES][ESP_NOW_ETH_ALEN] = {0};
 
-static void espnow_deinit(espnow_send_param_t *send_param);
+// static void espnow_deinit(espnow_send_param_t *send_param);
 
 /* ESPNOW sending or receiving callback function is called in WiFi task.
  * Users should not do lengthy operations from this task. Instead, post
@@ -170,6 +170,8 @@ void device_prov_prepare(espnow_send_param_t *send_param, uint8_t node_mac[])
 
     assert(send_param->len >= sizeof(espnow_data_t));
 
+    memset(buf,0,CONFIG_ESPNOW_SEND_LEN);//clean the buffer
+
     memcpy(buf->dest_mac, node_mac, ESP_NOW_ETH_ALEN);
     buf->type = IS_BROADCAST_ADDR(send_param->dest_mac) ? EXAMPLE_ESPNOW_DATA_BROADCAST : EXAMPLE_ESPNOW_DATA_UNICAST;
     buf->seq_num = s_espnow_seq[buf->type]++;
@@ -182,8 +184,13 @@ void device_prov_prepare(espnow_send_param_t *send_param, uint8_t node_mac[])
     uint32_t time_ms = esp_log_timestamp();
 
     memcpy(&buf->payload[1], &time_ms, sizeof(uint32_t));
+    memcpy(&buf->payload[5], station_mac, sizeof(station_mac));
 
-    memcpy(&buf->payload[5],station_mac,sizeof(station_mac));
+    extern uint8_t ssid[33];
+    extern uint8_t password[65];
+    memcpy(&buf->payload[11],ssid,strlen((char*)ssid));
+    memcpy(&buf->payload[11+strlen((char*)ssid)+1],password,strlen((char*)password));
+    printf("send wifi info:\nssid is :%s\npassword is :%s ",&buf->payload[11],&buf->payload[11+strlen((char*)ssid)+1]);
     printf("prov pay load is :%d\n", buf->payload[0]);
     buf->crc = esp_crc16_le(UINT16_MAX, (uint8_t const *)buf, send_param->len);
 }
@@ -195,7 +202,7 @@ static void espnow_task(void *pvParameter)
     uint16_t recv_seq = 0;
     uint32_t recv_magic = 0;
     uint8_t recv_destmac[ESP_NOW_ETH_ALEN] = {0};
-    uint8_t recv_payloadbuffer[ESPNOW_PAYLOAD_LEN-15] = {0};
+    uint8_t recv_payloadbuffer[ESPNOW_PAYLOAD_LEN - 15] = {0};
 
     int ret;
 
@@ -212,7 +219,7 @@ static void espnow_task(void *pvParameter)
         case EXAMPLE_ESPNOW_RECV_CB:
         {
             espnow_event_recv_cb_t *recv_cb = &evt.info.recv_cb;
-            memset(recv_payloadbuffer,0,sizeof(recv_payloadbuffer));
+            memset(recv_payloadbuffer, 0, sizeof(recv_payloadbuffer));
             ret = espnow_data_parse(recv_cb->data, recv_payloadbuffer, recv_cb->data_len, &recv_state, &recv_seq, &recv_magic, recv_destmac);
             free(recv_cb->data);
             if (ret == EXAMPLE_ESPNOW_DATA_BROADCAST)
@@ -273,9 +280,8 @@ esp_err_t espnow_init(void)
         return ESP_FAIL;
     }
 
-    
     esp_wifi_get_mac(ESP_IF_WIFI_STA, station_mac);
-    ESP_LOGI(TAG, "my mac is "MACSTR"",MAC2STR(station_mac));
+    ESP_LOGI(TAG, "my mac is " MACSTR "", MAC2STR(station_mac));
 
     /* Initialize ESPNOW and register sending and receiving callback function. */
     ESP_ERROR_CHECK(esp_now_init());
@@ -338,10 +344,10 @@ esp_err_t espnow_init(void)
     return ESP_OK;
 }
 
-static void espnow_deinit(espnow_send_param_t *send_param)
-{
-    free(send_param->buffer);
-    free(send_param);
-    vSemaphoreDelete(s_espnow_queue);
-    esp_now_deinit();
-}
+// static void espnow_deinit(espnow_send_param_t *send_param)
+// {
+//     free(send_param->buffer);
+//     free(send_param);
+//     vSemaphoreDelete(s_espnow_queue);
+//     esp_now_deinit();
+// }

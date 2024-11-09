@@ -7,7 +7,7 @@ static const char *TAG = "espnow_example";
 static QueueHandle_t s_example_espnow_queue;
 
 static uint8_t s_example_broadcast_mac[ESP_NOW_ETH_ALEN] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-static uint8_t station_mac[ESP_NOW_ETH_ALEN];// = {0x88, 0x13, 0xbf, 0x0a, 0xc9, 0xe0};
+static uint8_t station_mac[ESP_NOW_ETH_ALEN]; // = {0x88, 0x13, 0xbf, 0x0a, 0xc9, 0xe0};
 static uint8_t node_mac[ESP_NOW_ETH_ALEN];
 static uint16_t s_example_espnow_seq[EXAMPLE_ESPNOW_DATA_MAX] = {0, 0};
 
@@ -241,7 +241,7 @@ int espnow_node_data_prepare(example_espnow_send_param_t *send_param)
         {
             memcpy(&buf->payload[3 + i * 6], rx_buffer, 6);
             payload_msg *temp = (payload_msg *)rx_buffer;
-            //ESP_LOGI(TAG, "[%ld] ADC Channel[0] Cali Voltage: %ld mV", temp->payload_data.timestamp,temp->payload_data.adc_value);
+            // ESP_LOGI(TAG, "[%ld] ADC Channel[0] Cali Voltage: %ld mV", temp->payload_data.timestamp,temp->payload_data.adc_value);
         }
     }
     // printf("data waiting to be read : %d available spaces: %d \n",uxQueueMessagesWaiting(ADC_queue),uxQueueSpacesAvailable(ADC_queue));
@@ -271,7 +271,7 @@ void espnow_send_node_data(example_espnow_send_param_t *send_param)
             esp_now_send_err = esp_now_send(send_param->dest_mac, send_param->buffer, send_param->len);
             if (esp_now_send_err != ESP_OK)
             {
-                ESP_LOGE(TAG, "Send error reason is :%x",esp_now_send_err);
+                ESP_LOGE(TAG, "Send error reason is :%x", esp_now_send_err);
             }
         }
         else
@@ -310,7 +310,7 @@ static void example_espnow_task(void *pvParameter)
 
     while (1)
     {
-        //espnow_send_node_data(send_param);
+        // espnow_send_node_data(send_param);
         vTaskDelay(pdMS_TO_TICKS(100));
         if (xQueueReceive(s_example_espnow_queue, &evt, 0) == pdTRUE)
         {
@@ -348,14 +348,22 @@ static void example_espnow_task(void *pvParameter)
 
                         ESP_LOGI(TAG, "SET time flag shift is %ld", time_flag_gap);
 
-                        memcpy(station_mac,&recv_payloadbuffer[5],sizeof(station_mac));
-                        ESP_LOGI(TAG, "SET station mac is "MACSTR" ", MAC2STR(station_mac));
-                        
-                        provision_led();
-                        esp_wifi_connect();
+                        memcpy(station_mac, &recv_payloadbuffer[5], sizeof(station_mac));
+                        ESP_LOGI(TAG, "SET station mac is " MACSTR " ", MAC2STR(station_mac));
 
-                        /* If receive unicast ESPNOW data, also stop sending broadcast ESPNOW data. */
-                        send_param->broadcast = false;
+                        extern char ssid[33];
+                        extern char password[65];
+                        char ssid_buffer[33];
+                        char password_buffer[65];
+                        memcpy(ssid_buffer,&recv_payloadbuffer[11],sizeof(ssid));
+                        sprintf(ssid,"%s",ssid_buffer);
+                        memcpy(password_buffer,&recv_payloadbuffer[11+ strlen((char*)ssid)+1],sizeof(password_buffer));
+                        sprintf(password,"%s",password_buffer);
+                        // memcpy(ssid,&recv_payloadbuffer[11], strlen((char *)&recv_payloadbuffer[11]));
+                        // memcpy(password,&recv_payloadbuffer[11 + strlen((char*)ssid)+1], strlen((char *)&recv_payloadbuffer[11 + strlen((char*)ssid)]+1));
+                        ESP_LOGI(TAG, "GET WIFI ssid:%s and password:%s", ssid, password);
+
+                        wifi_connect_config_reinit();
                     }
                 }
                 else
