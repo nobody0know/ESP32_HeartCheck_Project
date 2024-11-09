@@ -20,3 +20,7 @@ ESP32_NOW/espnow_station/build
 ESP32_NOW/espnow_node/build
 
 flash_download_tool_3.9.7_2
+ESP32_NOW/espnow_station/.vscode/c_cpp_properties.json
+ESP32_NOW/espnow_station/.vscode/settings.json
+ESP32_NOW/espnow_node/.vscode/settings.json
+ESP32_NOW/espnow_node/dependencies.lock
