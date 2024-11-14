@@ -268,9 +268,34 @@ static void espnow_task(void *pvParameter)
     }
 }
 
+static void example_wifi_init(void)
+{
+    ESP_ERROR_CHECK(esp_netif_init());
+    ESP_ERROR_CHECK(esp_event_loop_create_default());
+    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+    ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_RAM));
+    ESP_ERROR_CHECK(esp_wifi_set_mode(ESPNOW_WIFI_MODE));
+    ESP_ERROR_CHECK(esp_wifi_start());
+    ESP_ERROR_CHECK(esp_wifi_set_channel(CONFIG_ESPNOW_CHANNEL, WIFI_SECOND_CHAN_NONE));
+
+#if CONFIG_ESPNOW_ENABLE_LONG_RANGE
+    ESP_ERROR_CHECK(esp_wifi_set_protocol(ESPNOW_WIFI_IF, WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N | WIFI_PROTOCOL_LR));
+#endif
+}
+
 esp_err_t espnow_init(void)
 {
     xEventGroupWaitBits(s_wifi_event_group, ESPTOUCH_DONE_BIT, true, false, portMAX_DELAY);
+
+    ESP_ERROR_CHECK(esp_wifi_stop());
+
+    ESP_ERROR_CHECK(esp_wifi_deinit());
+
+    ESP_ERROR_CHECK(esp_event_loop_delete_default());
+
+    example_wifi_init();
+
     espnow_send_param_t *send_param;
 
     s_espnow_queue = xQueueCreate(ESPNOW_QUEUE_SIZE, sizeof(espnow_event_t));

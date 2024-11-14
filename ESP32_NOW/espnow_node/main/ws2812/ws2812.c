@@ -11,7 +11,7 @@
 #include "WS2812.h"
 #include "esp_check.h"
 #define RMT_LED_STRIP_RESOLUTION_HZ 10000000 // 10MHz resolution, 1 tick = 0.1us (led strip needs a high resolution)
-#define RMT_LED_STRIP_GPIO_NUM 8
+#define RMT_LED_STRIP_GPIO_NUM 3
 
 #define EXAMPLE_LED_NUMBERS 1
 #define EXAMPLE_CHASE_SPEED_MS 1000
