@@ -1,0 +1,2 @@
+#define LCD_INIT_OK_BIT BIT0
+#define LCD_WIFI_OK_BIT BIT1

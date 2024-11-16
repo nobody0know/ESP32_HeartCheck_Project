@@ -448,9 +448,6 @@ static void lv_btnmatrix_event(const lv_obj_class_t * class_p, lv_event_t * e)
                     invalidate_button_area(obj, btnm->btn_id_sel); /*Invalidate the new area*/
                 }
             }
-            else {
-                btnm->btn_id_sel = LV_BTNMATRIX_BTN_NONE;
-            }
         }
 
         if(btnm->btn_id_sel != LV_BTNMATRIX_BTN_NONE) {

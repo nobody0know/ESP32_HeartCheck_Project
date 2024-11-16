@@ -13,6 +13,7 @@
 #include "esp_smartconfig.h"
 #include "esp_mac.h"
 #include "smart_config.h"
+#include "event_group_config.h"
 
 extern EventGroupHandle_t s_wifi_event_group;
 
@@ -133,6 +134,10 @@ static void smartconfig_task(void *parm)
         if (uxBits & ESPTOUCH_DONE_BIT)
         {
             ESP_LOGI(TAG, "smartconfig over");
+
+            extern EventGroupHandle_t gui_event_group;
+            xEventGroupSetBits(gui_event_group, LCD_WIFI_OK_BIT);
+
             esp_smartconfig_stop();
             vTaskDelete(NULL);
         }

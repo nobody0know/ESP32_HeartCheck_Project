@@ -16,36 +16,37 @@
 #include "esp_err.h"
 #include "esp_log.h"
 #include "lvgl.h"
-
+#include "lvgl_gui/lvgl_gui.h"
+#include "event_group_config.h"
 static const char *TAG = "LCD";
 
 // Using SPI2 in the example
-#define LCD_HOST  SPI2_HOST
+#define LCD_HOST SPI2_HOST
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////// Please update the following configuration according to your LCD spec //////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#define LCD_PIXEL_CLOCK_HZ     (20 * 1000 * 1000)
-#define LCD_BK_LIGHT_ON_LEVEL  0
+#define LCD_PIXEL_CLOCK_HZ (20 * 1000 * 1000)
+#define LCD_BK_LIGHT_ON_LEVEL 0
 #define LCD_BK_LIGHT_OFF_LEVEL !LCD_BK_LIGHT_ON_LEVEL
-#define PIN_NUM_SCLK           3
-#define PIN_NUM_MOSI           5
-#define PIN_NUM_MISO           -1
-#define PIN_NUM_LCD_DC         6
-#define PIN_NUM_LCD_RST        -1
-#define PIN_NUM_LCD_CS         4
-#define PIN_NUM_BK_LIGHT       2
-#define PIN_NUM_TOUCH_CS       -1
+#define PIN_NUM_SCLK 3
+#define PIN_NUM_MOSI 5
+#define PIN_NUM_MISO -1
+#define PIN_NUM_LCD_DC 6
+#define PIN_NUM_LCD_RST -1
+#define PIN_NUM_LCD_CS 4
+#define PIN_NUM_BK_LIGHT 2
+#define PIN_NUM_TOUCH_CS -1
 
 // The pixel number in horizontal and vertical
-#define LCD_H_RES              320
-#define LCD_V_RES              240
+#define LCD_H_RES 320
+#define LCD_V_RES 240
 
 // Bit number used to represent command and parameter
-#define LCD_CMD_BITS           8
-#define LCD_PARAM_BITS         8
+#define LCD_CMD_BITS 8
+#define LCD_PARAM_BITS 8
 
-#define LVGL_TICK_PERIOD_MS    2
+#define LVGL_TICK_PERIOD_MS 2
 
 extern void lvgl_demo_ui(lv_disp_t *disp);
 
@@ -58,7 +59,7 @@ static bool notify_lvgl_flush_ready(esp_lcd_panel_io_handle_t panel_io, esp_lcd_
 
 static void lvgl_flush_cb(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_map)
 {
-    esp_lcd_panel_handle_t panel_handle = (esp_lcd_panel_handle_t) drv->user_data;
+    esp_lcd_panel_handle_t panel_handle = (esp_lcd_panel_handle_t)drv->user_data;
     int offsetx1 = area->x1;
     int offsetx2 = area->x2;
     int offsety1 = area->y1;
@@ -70,9 +71,10 @@ static void lvgl_flush_cb(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t 
 /* Rotate display and touch, when rotated screen in LVGL. Called when driver parameters are updated. */
 static void lvgl_port_update_callback(lv_disp_drv_t *drv)
 {
-    esp_lcd_panel_handle_t panel_handle = (esp_lcd_panel_handle_t) drv->user_data;
+    esp_lcd_panel_handle_t panel_handle = (esp_lcd_panel_handle_t)drv->user_data;
 
-    switch (drv->rotated) {
+    switch (drv->rotated)
+    {
     case LV_DISP_ROT_270:
         // Rotate LCD display
         esp_lcd_panel_swap_xy(panel_handle, false);
@@ -111,8 +113,7 @@ void lcd_task(void)
     ESP_LOGI(TAG, "Turn off LCD backlight");
     gpio_config_t bk_gpio_config = {
         .mode = GPIO_MODE_OUTPUT,
-        .pin_bit_mask = 1ULL << PIN_NUM_BK_LIGHT
-    };
+        .pin_bit_mask = 1ULL << PIN_NUM_BK_LIGHT};
     ESP_ERROR_CHECK(gpio_config(&bk_gpio_config));
 
     ESP_LOGI(TAG, "Initialize SPI bus");
@@ -189,16 +190,16 @@ void lcd_task(void)
     // Tick interface for LVGL (using esp_timer to generate 2ms periodic event)
     const esp_timer_create_args_t lvgl_tick_timer_args = {
         .callback = &increase_lvgl_tick,
-        .name = "lvgl_tick"
-    };
+        .name = "lvgl_tick"};
     esp_timer_handle_t lvgl_tick_timer = NULL;
     ESP_ERROR_CHECK(esp_timer_create(&lvgl_tick_timer_args, &lvgl_tick_timer));
     ESP_ERROR_CHECK(esp_timer_start_periodic(lvgl_tick_timer, LVGL_TICK_PERIOD_MS * 1000));
 
-    ESP_LOGI(TAG, "Display LVGL Meter Widget");
-    lvgl_demo_ui(disp);
+    extern EventGroupHandle_t gui_event_group;
+    xEventGroupSetBits(gui_event_group, LCD_INIT_OK_BIT);
 
-    while (1) {
+    while (1)
+    {
         // raise the task priority of LVGL and/or reduce the handler period can improve the performance
         vTaskDelay(pdMS_TO_TICKS(10));
         // The task running lv_timer_handler should have lower priority than that running `lv_tick_inc`
@@ -208,5 +209,5 @@ void lcd_task(void)
 
 void lcd_hw_init()
 {
-    xTaskCreate(lcd_task, "lcd_task", 4096, NULL, 3, NULL);
+    xTaskCreate(lcd_task, "lcd_task", 8192, NULL, 3, NULL);
 }

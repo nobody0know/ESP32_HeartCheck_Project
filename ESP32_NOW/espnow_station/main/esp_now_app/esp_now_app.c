@@ -19,7 +19,7 @@
 #include "esp_mac.h"
 #include "esp_now.h"
 #include "esp_crc.h"
-#include "espnow_example.h"
+#include "esp_now_config.h"
 #include <sys/time.h>
 #include "driver/uart.h"
 #include "smart_config/smart_config.h"
@@ -29,7 +29,7 @@ extern EventGroupHandle_t s_wifi_event_group;
 #define ESPNOW_MAXDELAY 512
 #define USER_MAXDEVICES 50
 
-static const char *TAG = "espnow_example";
+static const char *TAG = "espnow";
 
 static QueueHandle_t s_espnow_queue;
 
@@ -38,7 +38,7 @@ static uint8_t station_mac[ESP_NOW_ETH_ALEN];
 
 static uint16_t s_espnow_seq[EXAMPLE_ESPNOW_DATA_MAX] = {0, 0};
 
-static uint8_t total_nodedevices_num = 0;
+uint8_t total_nodedevices_num = 0;
 static uint8_t total_nodedevices_mac[USER_MAXDEVICES][ESP_NOW_ETH_ALEN] = {0};
 
 // static void espnow_deinit(espnow_send_param_t *send_param);
@@ -170,7 +170,7 @@ void device_prov_prepare(espnow_send_param_t *send_param, uint8_t node_mac[])
 
     assert(send_param->len >= sizeof(espnow_data_t));
 
-    memset(buf,0,CONFIG_ESPNOW_SEND_LEN);//clean the buffer
+    memset(buf, 0, CONFIG_ESPNOW_SEND_LEN); // clean the buffer
 
     memcpy(buf->dest_mac, node_mac, ESP_NOW_ETH_ALEN);
     buf->type = IS_BROADCAST_ADDR(send_param->dest_mac) ? EXAMPLE_ESPNOW_DATA_BROADCAST : EXAMPLE_ESPNOW_DATA_UNICAST;
@@ -188,9 +188,9 @@ void device_prov_prepare(espnow_send_param_t *send_param, uint8_t node_mac[])
 
     extern uint8_t ssid[33];
     extern uint8_t password[65];
-    memcpy(&buf->payload[11],ssid,strlen((char*)ssid));
-    memcpy(&buf->payload[11+strlen((char*)ssid)+1],password,strlen((char*)password));
-    printf("send wifi info:\nssid is :%s\npassword is :%s ",&buf->payload[11],&buf->payload[11+strlen((char*)ssid)+1]);
+    memcpy(&buf->payload[11], ssid, strlen((char *)ssid));
+    memcpy(&buf->payload[11 + strlen((char *)ssid) + 1], password, strlen((char *)password));
+    printf("send wifi info:\nssid is :%s\npassword is :%s ", &buf->payload[11], &buf->payload[11 + strlen((char *)ssid) + 1]);
     printf("prov pay load is :%d\n", buf->payload[0]);
     buf->crc = esp_crc16_le(UINT16_MAX, (uint8_t const *)buf, send_param->len);
 }
