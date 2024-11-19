@@ -362,8 +362,9 @@ static void example_espnow_task(void *pvParameter)
                         // memcpy(ssid,&recv_payloadbuffer[11], strlen((char *)&recv_payloadbuffer[11]));
                         // memcpy(password,&recv_payloadbuffer[11 + strlen((char*)ssid)+1], strlen((char *)&recv_payloadbuffer[11 + strlen((char*)ssid)]+1));
                         ESP_LOGI(TAG, "GET WIFI ssid:%s and password:%s", ssid, password);
-
+                        example_espnow_deinit(send_param);
                         wifi_connect_config_reinit();
+                        vTaskDelete(NULL);
                     }
                 }
                 else

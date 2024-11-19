@@ -54,17 +54,18 @@ int udp_data_prepare(uint8_t *databuffer)
         ESP_LOGE(TAG, "adc queue may have something error");
         return 0;
     }
-    uint8_t rx_buffer[100];
-    for (int i = 0; i < 9; i++)
+    uint8_t rx_buffer[1024];
+    for (int i = 0; i < 100; i++)
     {
         memset(rx_buffer, 0, sizeof(rx_buffer));
-        if (xQueueReceive(ADC_queue, rx_buffer, 10))
+        if (xQueueReceive(ADC_queue, rx_buffer, 1))
         {
             memcpy(&databuffer[3 + i * 6], rx_buffer, 6);
             payload_msg *temp = (payload_msg *)rx_buffer;
-            ESP_LOGI(TAG, "[%ld] ADC Channel[0] Cali Voltage: %d mV", temp->payload_data.timestamp, temp->payload_data.adc_value);
+            // ESP_LOGI(TAG, "[%ld] ADC Channel[0] Cali Voltage: %d mV", temp->payload_data.timestamp, temp->payload_data.adc_value);
         }
     }
+    xQueueReset(ADC_queue);
     // printf("data waiting to be read : %d available spaces: %d \n",uxQueueMessagesWaiting(ADC_queue),uxQueueSpacesAvailable(ADC_queue));
     // buf->crc = esp_crc16_le(UINT16_MAX, (uint8_t const *)databuffer, );
     return 1;
@@ -108,7 +109,7 @@ static void udp_client_task(void *pvParameters)
                 extern bool usermsg_send_start;
                 if (usermsg_send_start == 1)
                 {
-                    uint8_t udpdatabuffer[200];
+                    uint8_t udpdatabuffer[1024];
                     if (udp_data_prepare(udpdatabuffer))
                     {
                         int err = sendto(sock, udpdatabuffer, sizeof(udpdatabuffer), 0, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
@@ -129,7 +130,7 @@ static void udp_client_task(void *pvParameters)
                     vTaskDelay(100 / portTICK_PERIOD_MS);
                 }
 
-                vTaskDelay(10 / portTICK_PERIOD_MS);
+                vTaskDelay(100 / portTICK_PERIOD_MS);
             }
 
             if (sock != -1)

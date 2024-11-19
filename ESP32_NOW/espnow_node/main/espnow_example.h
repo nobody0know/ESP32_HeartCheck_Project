@@ -10,7 +10,7 @@
 #include "board.h"
 #include "ws2812/ws2812.h"
 #include "esp_now_app.h"
-#include "adc/adc.h"
+#include "adc_detect/adc_common_config.h"
 #include "udp/udp_server.h"
 #include "wifi/wifi.h"
 

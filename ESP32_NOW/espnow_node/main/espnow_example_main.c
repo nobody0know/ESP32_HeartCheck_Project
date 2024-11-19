@@ -22,7 +22,7 @@ void app_main(void)
     }
 
     xTaskCreate(WS2812_Task,"WS2812_Task",3072,NULL,2,NULL);
-    xTaskCreate(ADC_Task,"ADC_Task",4096,NULL,2,NULL);
+    xTaskCreate(ADC_oneshot_Task,"ADC_Task",4096,NULL,5,NULL);
 
 
     ret = wifi_sta_init();

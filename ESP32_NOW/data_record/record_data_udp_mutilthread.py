@@ -25,8 +25,8 @@ def parse_message(message):
     data_points = []
     offset = 3
 
-    for i in range(25):  # 循环解析5组（时间戳 + ADC 数据）
-        if offset + 8 > len(message):
+    for i in range(100):  # 循环解析5组（时间戳 + ADC 数据）
+        if offset + 6 > len(message):
             break  # 如果剩余数据不足以解析，跳出循环
         try:
             timestamp, adc_value = struct.unpack('<IH', message[offset:offset+6])
@@ -47,6 +47,7 @@ def update_dataframe(device_id, data_points,data_frame):
 def read_from_udp(udp_port, device_id):
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind(('', udp_port))
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 65536)  # 增加缓冲区
     sock.settimeout(1)
     print(f"Listening on UDP port {udp_port} for device {device_id}")
 
@@ -55,15 +56,15 @@ def read_from_udp(udp_port, device_id):
     try:
         while running:
             try:
-                data, addr = sock.recvfrom(300)
+                data, addr = sock.recvfrom(2000)
                 if data:
                     parsed_data = parse_message(data)
                     if parsed_data:
                         device_id, data_points = parsed_data
                         update_dataframe(device_id, data_points,data_frame)  # 更新DataFrame
                         print(f"Device {device_id}:")
-                        # for i, (timestamp, adc_value) in enumerate(data_points, 1):
-                        #     print(f"  Data {i}: Timestamp = {timestamp}, ADC Value = {adc_value}")
+                        for i, (timestamp, adc_value) in enumerate(data_points, 1):
+                            print(f"  Data {i}: Timestamp = {timestamp}, ADC Value = {adc_value}")
                     else:
                         print("Failed to parse message.") 
             except socket.timeout:
@@ -82,8 +83,8 @@ def signal_handler(signum, frame):
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal_handler)
 
-    device_ids = range(1, 11)  # 假设有15个设备
-    base_port = 10000
+    device_ids = range(1, 2)  # 假设有15个设备
+    base_port = 10001
     threads = []
 
     for device_id in device_ids:
