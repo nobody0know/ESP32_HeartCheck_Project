@@ -100,7 +100,7 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal_handler)
 
     device_ids = range(1, 2)  # 假设有5个设备
-    base_port = 10001
+    base_port = 10000
     threads = []
     queues = {}
     data_storages = {}
