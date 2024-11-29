@@ -14,7 +14,6 @@
 #include "widgets_init.h"
 #include "custom.h"
 
-extern uint8_t ssid[33];
 
 
 void setup_scr_main_screen(lv_ui *ui)
@@ -80,7 +79,7 @@ void setup_scr_main_screen(lv_ui *ui)
     lv_label_set_text(ui->main_screen_label_3, "" LV_SYMBOL_HOME " 主机IP地址为\" \"");
     lv_label_set_long_mode(ui->main_screen_label_3, LV_LABEL_LONG_WRAP);
     lv_obj_set_pos(ui->main_screen_label_3, 8, 47);
-    lv_obj_set_size(ui->main_screen_label_3, 265, 32);
+    lv_obj_set_size(ui->main_screen_label_3, 320, 32);
 
     //Write style for main_screen_label_3, Part: LV_PART_MAIN, State: LV_STATE_DEFAULT.
     lv_obj_set_style_border_width(ui->main_screen_label_3, 0, LV_PART_MAIN|LV_STATE_DEFAULT);

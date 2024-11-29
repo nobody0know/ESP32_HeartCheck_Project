@@ -17,7 +17,7 @@
 #include "freertos/timers.h"
 #include "nvs_flash.h"
 #include "esp_now_app.h"
-#include "smart_config.h"
+#include "wifi_config.h"
 #include "lcd_hw.h"
 #include "lvgl_gui.h"
 #include "udp_app.h"
@@ -25,23 +25,18 @@
 /* FreeRTOS event group to signal when we are connected & ready to make a request */
 EventGroupHandle_t s_wifi_event_group;
 
+uint8_t reset_flag = 0;
+
 void app_main(void)
 {
-    // Initialize NVS
-    esp_err_t ret = nvs_flash_init();
-    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
-    {
-        ESP_ERROR_CHECK(nvs_flash_erase());
-        ret = nvs_flash_init();
-    }
-    ESP_ERROR_CHECK(ret);
-
     lcd_hw_init();
     lvgl_gui_init();
     
+    wifi_config_init();
 
-    smart_config_init();
     udp_app_init();
 
     ESP_ERROR_CHECK(espnow_init());
+
+    reset_flag = 1;
 }

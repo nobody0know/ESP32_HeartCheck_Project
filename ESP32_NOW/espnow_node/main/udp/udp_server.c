@@ -25,23 +25,15 @@
 
 #include "esp_now/esp_now_app.h"
 
-#if defined(CONFIG_EXAMPLE_IPV4)
-#define HOST_IP_ADDR CONFIG_EXAMPLE_IPV4_ADDR
-#elif defined(CONFIG_EXAMPLE_IPV6)
-#define HOST_IP_ADDR CONFIG_EXAMPLE_IPV6_ADDR
-#else
-#define HOST_IP_ADDR ""
-#endif
-
 #define PORT 10000
 
-char pc_ip[128] = {0};
+char pc_ip[128] = {0};//上位机的IP地址，通过给基站程序发UDP然后基站发送ESPNOW给节点配网
 
 static const char *TAG = "UDP";
 extern uint16_t device_id;
 extern QueueHandle_t ADC_queue;
 
-// 填充ADC数据报文，为减少发送频率，将5次测量结果放一帧发送，报文总长为 帧头9byte + 5 * 8byte = 49
+// 填充ADC数据报文，为减少发送频率，将100次测量结果放一帧发送
 int udp_data_prepare(uint8_t *databuffer)
 {
 
@@ -75,7 +67,6 @@ int udp_data_prepare(uint8_t *databuffer)
 
 static void udp_client_task(void *pvParameters)
 {
-    char host_ip[] = HOST_IP_ADDR;
     int addr_family = 0;
     int ip_protocol = 0;
 
@@ -84,7 +75,7 @@ static void udp_client_task(void *pvParameters)
         if (device_id != 0)
         {
             struct sockaddr_in dest_addr;
-            dest_addr.sin_addr.s_addr = inet_addr(HOST_IP_ADDR);
+            dest_addr.sin_addr.s_addr = inet_addr(pc_ip);
             dest_addr.sin_family = AF_INET;
             dest_addr.sin_port = htons(PORT + device_id);
             addr_family = AF_INET;
@@ -103,7 +94,7 @@ static void udp_client_task(void *pvParameters)
             timeout.tv_usec = 1000;
             setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof timeout);
 
-            ESP_LOGI(TAG, "Socket created, sending to %s:%d", HOST_IP_ADDR, PORT + device_id);
+            ESP_LOGI(TAG, "Socket created, sending to %s:%d", pc_ip, PORT + device_id);
 
             while (1)
             {

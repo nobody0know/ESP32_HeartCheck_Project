@@ -2,7 +2,7 @@ file(GLOB_RECURSE srcs *.c
                     ./main_init.c 
                     esp_now_app/*.c 
                     lcd/*.c
-                    smart_config/*.c
+                    wifi_config/*.c
                     lvgl_gui/*.c
                     lvgl_gui/generated/*.c
                     lvgl_gui/generated/guider_fonts/*.c
@@ -17,7 +17,7 @@ set(include_dirs
 .  
 esp_now_app
 lcd
-smart_config
+wifi_config
 udp
 lvgl_gui 
 lvgl_gui/custom

@@ -76,7 +76,7 @@ void setup_scr_wifi_connect_screen(lv_ui *ui)
 
     //Write codes wifi_connect_screen_prov_log
     ui->wifi_connect_screen_prov_log = lv_label_create(ui->wifi_connect_screen);
-    lv_label_set_text(ui->wifi_connect_screen_prov_log, "等待采集程序连接......\n采集程序连接完成");
+    lv_label_set_text(ui->wifi_connect_screen_prov_log, "等待采集程序连接......\n");
     lv_label_set_long_mode(ui->wifi_connect_screen_prov_log, LV_LABEL_LONG_WRAP);
     lv_obj_set_pos(ui->wifi_connect_screen_prov_log, 64, 149);
     lv_obj_set_size(ui->wifi_connect_screen_prov_log, 195, 32);

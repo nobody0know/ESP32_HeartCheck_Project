@@ -15,12 +15,13 @@
 #include "esp_err.h"
 #include "esp_log.h"
 #include "event_group_config.h"
+#include "wifi_config.h"
+#include "udp_app.h"
 
 static const char *TAG = "LVGL";
 lv_ui guider_ui;
 EventGroupHandle_t gui_event_group;
 uint8_t event_now = 0;
-extern char pc_addr_str[128];
 
 void lvgl_gui_esptouch_screen(lv_ui *ui)
 {
@@ -49,23 +50,26 @@ void lvgl_gui_update()
         break;
     case LCD_WIFI_OK_BIT:
         lv_label_set_text(guider_ui.wifi_connect_screen_wifi_connect_log, "wifi连接成功");
+        lv_label_set_text_fmt(guider_ui.wifi_connect_screen_pc_connect_log, "基站IP地址为:\"%s\"", get_ip_addr());
         break;
     case LCD_GET_PCIP_OK_BIT:
         lv_label_set_text(guider_ui.wifi_connect_screen_prov_log, "采集程序连接完成");
-        lv_label_set_text_fmt(guider_ui.wifi_connect_screen_pc_connect_log, "基站IP地址为:\"%s\"",pc_addr_str);
         break;
     case LCD_UPDATE_MAIN_BIT:
     {
         char text_show_buf[200] = {0};
-        extern uint8_t ssid[33];
-        sprintf(text_show_buf, "" LV_SYMBOL_WIFI " 连接的wifi为\"%s\"", (char *)ssid);
+        extern char wifi_ssid[33];
+        sprintf(text_show_buf, "" LV_SYMBOL_WIFI " 连接的wifi为\"%s\"", (char *)wifi_ssid);
         lv_label_set_text(guider_ui.main_screen_label_1, text_show_buf);
 
         memset(text_show_buf, 0, sizeof(text_show_buf));
         extern uint8_t total_nodedevices_num;
         sprintf(text_show_buf, "" LV_SYMBOL_GPS " 已配网节点数：%d个", total_nodedevices_num);
-        ESP_LOGI(TAG,"已配网节点数：%d个",total_nodedevices_num);
+
+        // ESP_LOGI(TAG, "已配网节点数：%d个", total_nodedevices_num);
         lv_label_set_text(guider_ui.main_screen_label_2, text_show_buf);
+
+        lv_label_set_text_fmt(guider_ui.main_screen_label_3, "" LV_SYMBOL_HOME " 主机IP地址为\" %s\"",get_pc_ip_addr());
     }
     break;
 
@@ -80,7 +84,10 @@ void lvgl_task()
     xEventGroupWaitBits(gui_event_group, LCD_INIT_OK_BIT, pdFALSE, pdFALSE, portMAX_DELAY);
     lv_timer_create(lvgl_gui_update, 200, NULL);
     event_now = LCD_INIT_OK_BIT;
-    lvgl_gui_esptouch_screen(&guider_ui);
+    if (ifneed_smart_config() == 0)
+    {
+        lvgl_wifi_connect_screen(&guider_ui);
+    }
 
     xEventGroupWaitBits(gui_event_group, LCD_WIFI_OK_BIT, pdFALSE, pdFALSE, portMAX_DELAY);
     event_now = LCD_WIFI_OK_BIT;
@@ -102,4 +109,9 @@ void lvgl_gui_init()
 {
     gui_event_group = xEventGroupCreate();
     xTaskCreate(lvgl_task, "lvgl_task", 8192, NULL, 3, NULL);
+}
+
+void show_esptouch_screen()
+{
+    lvgl_gui_esptouch_screen(&guider_ui);
 }

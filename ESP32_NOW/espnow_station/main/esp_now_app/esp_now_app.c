@@ -22,7 +22,7 @@
 #include "esp_now_config.h"
 #include <sys/time.h>
 #include "driver/uart.h"
-#include "smart_config/smart_config.h"
+#include "wifi_config/wifi_config.h"
 #include "event_group_config.h"
 
 #define ESPNOW_MAXDELAY 512
@@ -39,8 +39,6 @@ static uint16_t s_espnow_seq[EXAMPLE_ESPNOW_DATA_MAX] = {0, 0};
 
 uint8_t total_nodedevices_num = 0;
 static uint8_t total_nodedevices_mac[USER_MAXDEVICES][ESP_NOW_ETH_ALEN] = {0};
-
-// static void espnow_deinit(espnow_send_param_t *send_param);
 
 /* ESPNOW sending or receiving callback function is called in WiFi task.
  * Users should not do lengthy operations from this task. Instead, post
@@ -189,11 +187,11 @@ void device_prov_prepare(espnow_send_param_t *send_param, uint8_t node_mac[])
     memcpy(&buf->payload[11],pc_addr_str,strlen(pc_addr_str));
     printf("send pc ip info:%s\n",&buf->payload[11]);
 
-    extern uint8_t ssid[33];
-    extern uint8_t password[65];
-    memcpy(&buf->payload[28], ssid, strlen((char *)ssid));
-    memcpy(&buf->payload[28 + strlen((char *)ssid) + 1], password, strlen((char *)password));
-    printf("send wifi info:\nssid is :%s\npassword is :%s ", &buf->payload[28], &buf->payload[28 + strlen((char *)ssid) + 1]);
+    extern char wifi_ssid[33];
+    extern char wifi_password[65];
+    memcpy(&buf->payload[28], wifi_ssid, strlen(wifi_ssid));
+    memcpy(&buf->payload[28 + strlen((char *)wifi_ssid) + 1], wifi_password, strlen((char *)wifi_password));
+    printf("send wifi info:\nssid is :%s\npassword is :%s ", &buf->payload[28], &buf->payload[28 + strlen((char *)wifi_ssid) + 1]);
 
     printf("prov pay load is :");
     for (int i = 0; i < CONFIG_ESPNOW_SEND_LEN; i++)
@@ -216,7 +214,7 @@ static void espnow_task(void *pvParameter)
     int ret;
 
     vTaskDelay(1000 / portTICK_PERIOD_MS);
-    ESP_LOGI(TAG, "Start sending broadcast data");
+    ESP_LOGI(TAG, "Start reveiving broadcast data");
 
     /* Start sending broadcast ESPNOW data. */
     espnow_send_param_t *send_param = (espnow_send_param_t *)pvParameter;
@@ -288,9 +286,6 @@ static void example_wifi_init(void)
     ESP_ERROR_CHECK(esp_wifi_start());
     ESP_ERROR_CHECK(esp_wifi_set_channel(CONFIG_ESPNOW_CHANNEL, WIFI_SECOND_CHAN_NONE));
 
-#if CONFIG_ESPNOW_ENABLE_LONG_RANGE
-    ESP_ERROR_CHECK(esp_wifi_set_protocol(ESPNOW_WIFI_IF, WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N | WIFI_PROTOCOL_LR));
-#endif
 }
 
 esp_err_t espnow_init(void)
@@ -322,10 +317,7 @@ esp_err_t espnow_init(void)
     ESP_ERROR_CHECK(esp_now_init());
     ESP_ERROR_CHECK(esp_now_register_send_cb(espnow_send_cb));
     ESP_ERROR_CHECK(esp_now_register_recv_cb(espnow_recv_cb));
-#if CONFIG_ESPNOW_ENABLE_POWER_SAVE
-    ESP_ERROR_CHECK(esp_now_set_wake_window(CONFIG_ESPNOW_WAKE_WINDOW));
-    ESP_ERROR_CHECK(esp_wifi_connectionless_module_set_wake_interval(CONFIG_ESPNOW_WAKE_INTERVAL));
-#endif
+
     /* Set primary master key. */
     ESP_ERROR_CHECK(esp_now_set_pmk((uint8_t *)CONFIG_ESPNOW_PMK));
 
@@ -374,15 +366,9 @@ esp_err_t espnow_init(void)
     memcpy(send_param->dest_mac, s_broadcast_mac, ESP_NOW_ETH_ALEN);
     espnow_data_prepare(send_param);
 
+    xEventGroupSetBits(gui_event_group, LCD_UPDATE_MAIN_BIT);//设置显示主界面
+
     xTaskCreate(espnow_task, "espnow_task", 4096, send_param, 4, NULL);
 
     return ESP_OK;
 }
-
-// static void espnow_deinit(espnow_send_param_t *send_param)
-// {
-//     free(send_param->buffer);
-//     free(send_param);
-//     vSemaphoreDelete(s_espnow_queue);
-//     esp_now_deinit();
-// }

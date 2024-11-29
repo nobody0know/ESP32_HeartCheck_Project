@@ -51,7 +51,7 @@ static void udp_server_task(void *pvParameters)
         ip_protocol = IPPROTO_IP;
 
         int sock = socket(addr_family, SOCK_DGRAM, ip_protocol);
-        printf("socket back is %d",sock);
+        // printf("socket back is %d",sock);//debug
         if (sock < 0)
         {
             ESP_LOGE(TAG, "Unable to create socket: errno %d", errno);
@@ -61,7 +61,7 @@ static void udp_server_task(void *pvParameters)
 
         // Set timeout
         struct timeval timeout;
-        timeout.tv_sec = 10;
+        timeout.tv_sec = 300;
         timeout.tv_usec = 0;
         setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof timeout);
 
@@ -118,4 +118,9 @@ static void udp_server_task(void *pvParameters)
 void udp_app_init(void)
 {
     xTaskCreate(udp_server_task, "udp_server", 4096, NULL, 5, NULL);
+}
+
+char *get_pc_ip_addr(void)
+{
+    return pc_addr_str;
 }
