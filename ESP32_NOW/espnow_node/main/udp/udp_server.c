@@ -35,6 +35,8 @@
 
 #define PORT 10000
 
+char pc_ip[128] = {0};
+
 static const char *TAG = "UDP";
 extern uint16_t device_id;
 extern QueueHandle_t ADC_queue;

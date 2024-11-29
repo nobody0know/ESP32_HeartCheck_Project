@@ -20,6 +20,7 @@
 #include "smart_config.h"
 #include "lcd_hw.h"
 #include "lvgl_gui.h"
+#include "udp_app.h"
 
 /* FreeRTOS event group to signal when we are connected & ready to make a request */
 EventGroupHandle_t s_wifi_event_group;
@@ -35,11 +36,12 @@ void app_main(void)
     }
     ESP_ERROR_CHECK(ret);
 
-    lvgl_gui_init();
     lcd_hw_init();
+    lvgl_gui_init();
     
 
     smart_config_init();
+    udp_app_init();
 
     ESP_ERROR_CHECK(espnow_init());
 }

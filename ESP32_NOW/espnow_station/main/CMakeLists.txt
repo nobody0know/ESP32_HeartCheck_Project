@@ -9,6 +9,7 @@ file(GLOB_RECURSE srcs *.c
                     lvgl_gui/custom/*.c
                     lvgl_gui/generated/images/*.c
                     lvgl_gui/generated/guider_customer_fonts/*.c
+                    udp/*.c
                     )
 
 
@@ -17,6 +18,7 @@ set(include_dirs
 esp_now_app
 lcd
 smart_config
+udp
 lvgl_gui 
 lvgl_gui/custom
 lvgl_gui/generated/guider_fonts

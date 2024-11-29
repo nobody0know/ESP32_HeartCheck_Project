@@ -1,0 +1,1 @@
+void udp_app_init(void);

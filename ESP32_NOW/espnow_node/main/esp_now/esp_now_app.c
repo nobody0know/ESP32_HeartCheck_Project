@@ -353,11 +353,15 @@ static void example_espnow_task(void *pvParameter)
 
                         extern char ssid[33];
                         extern char password[65];
+                        extern char pc_ip[128];
+                        memcpy(pc_ip,&recv_payloadbuffer[11],strlen((char*)&recv_payloadbuffer[11]));
+                        ESP_LOGI(TAG, "SET PC IP is %s", pc_ip);
+
                         char ssid_buffer[33];
                         char password_buffer[65];
-                        memcpy(ssid_buffer,&recv_payloadbuffer[11],sizeof(ssid));
+                        memcpy(ssid_buffer,&recv_payloadbuffer[28],sizeof(ssid));
                         sprintf(ssid,"%s",ssid_buffer);
-                        memcpy(password_buffer,&recv_payloadbuffer[11+ strlen((char*)ssid)+1],sizeof(password_buffer));
+                        memcpy(password_buffer,&recv_payloadbuffer[28+ strlen((char*)ssid)+1],sizeof(password_buffer));
                         sprintf(password,"%s",password_buffer);
                         // memcpy(ssid,&recv_payloadbuffer[11], strlen((char *)&recv_payloadbuffer[11]));
                         // memcpy(password,&recv_payloadbuffer[11 + strlen((char*)ssid)+1], strlen((char *)&recv_payloadbuffer[11 + strlen((char*)ssid)]+1));

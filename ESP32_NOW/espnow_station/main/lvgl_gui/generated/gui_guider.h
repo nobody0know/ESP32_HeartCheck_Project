@@ -22,6 +22,11 @@ typedef struct
 	bool esptouch_screen_del;
 	lv_obj_t *esptouch_screen_label_1;
 	lv_obj_t *esptouch_screen_img_1;
+	lv_obj_t *wifi_connect_screen;
+	bool wifi_connect_screen_del;
+	lv_obj_t *wifi_connect_screen_pc_connect_log;
+	lv_obj_t *wifi_connect_screen_wifi_connect_log;
+	lv_obj_t *wifi_connect_screen_prov_log;
 	lv_obj_t *main_screen;
 	bool main_screen_del;
 	lv_obj_t *main_screen_label_1;
@@ -51,6 +56,7 @@ extern lv_ui guider_ui;
 
 
 void setup_scr_esptouch_screen(lv_ui *ui);
+void setup_scr_wifi_connect_screen(lv_ui *ui);
 void setup_scr_main_screen(lv_ui *ui);
 LV_IMG_DECLARE(_esptouch_alpha_150x150);
 LV_IMG_DECLARE(_moyoga_alpha_100x100);

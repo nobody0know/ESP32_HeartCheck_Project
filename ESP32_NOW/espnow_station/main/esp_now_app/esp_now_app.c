@@ -23,8 +23,7 @@
 #include <sys/time.h>
 #include "driver/uart.h"
 #include "smart_config/smart_config.h"
-
-extern EventGroupHandle_t s_wifi_event_group;
+#include "event_group_config.h"
 
 #define ESPNOW_MAXDELAY 512
 #define USER_MAXDEVICES 50
@@ -186,12 +185,22 @@ void device_prov_prepare(espnow_send_param_t *send_param, uint8_t node_mac[])
     memcpy(&buf->payload[1], &time_ms, sizeof(uint32_t));
     memcpy(&buf->payload[5], station_mac, sizeof(station_mac));
 
+    extern char pc_addr_str[128];
+    memcpy(&buf->payload[11],pc_addr_str,strlen(pc_addr_str));
+    printf("send pc ip info:%s\n",&buf->payload[11]);
+
     extern uint8_t ssid[33];
     extern uint8_t password[65];
-    memcpy(&buf->payload[11], ssid, strlen((char *)ssid));
-    memcpy(&buf->payload[11 + strlen((char *)ssid) + 1], password, strlen((char *)password));
-    printf("send wifi info:\nssid is :%s\npassword is :%s ", &buf->payload[11], &buf->payload[11 + strlen((char *)ssid) + 1]);
-    printf("prov pay load is :%d\n", buf->payload[0]);
+    memcpy(&buf->payload[28], ssid, strlen((char *)ssid));
+    memcpy(&buf->payload[28 + strlen((char *)ssid) + 1], password, strlen((char *)password));
+    printf("send wifi info:\nssid is :%s\npassword is :%s ", &buf->payload[28], &buf->payload[28 + strlen((char *)ssid) + 1]);
+
+    printf("prov pay load is :");
+    for (int i = 0; i < CONFIG_ESPNOW_SEND_LEN; i++)
+    {
+        printf("%c", buf->payload[i]);
+    }
+    printf("\n");
     buf->crc = esp_crc16_le(UINT16_MAX, (uint8_t const *)buf, send_param->len);
 }
 
@@ -286,7 +295,8 @@ static void example_wifi_init(void)
 
 esp_err_t espnow_init(void)
 {
-    xEventGroupWaitBits(s_wifi_event_group, ESPTOUCH_DONE_BIT, true, false, portMAX_DELAY);
+    extern EventGroupHandle_t gui_event_group;
+    xEventGroupWaitBits(gui_event_group, LCD_GET_PCIP_OK_BIT, pdFALSE, pdFALSE, portMAX_DELAY);
 
     ESP_ERROR_CHECK(esp_wifi_stop());
 
