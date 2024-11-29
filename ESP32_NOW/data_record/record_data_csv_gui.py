@@ -18,6 +18,7 @@ from matplotlib.figure import Figure
 
 # 全局运行标志
 running = False
+connected_to_station = False  # 添加连接标志
 
 # 信号类，用于在线程间传递消息
 class SignalHandler(QObject):
@@ -190,10 +191,20 @@ class MainWindow(QMainWindow):
         self.plots = {}
         self.init_ui()
 
+
     def init_ui(self):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         layout = QVBoxLayout(central_widget)
+
+        # 基站连接部分
+        self.station_ip_input = QLineEdit()
+        self.station_ip_input.setPlaceholderText("Enter Base Station IP")
+        self.connect_button = QPushButton("Connect to Base Station")
+        self.connect_button.clicked.connect(self.connect_to_station)
+        
+        layout.addWidget(self.station_ip_input)
+        layout.addWidget(self.connect_button)
 
         # 表单区域
         form_layout = QFormLayout()
@@ -234,6 +245,11 @@ class MainWindow(QMainWindow):
 
     def start_logging(self):
         global running
+        if not connected_to_station:
+            self.append_log("Please connect to the base station first.")
+            return
+            
+        global running
         if running:
             self.append_log("Logging is already running.")
             return
@@ -257,8 +273,6 @@ class MainWindow(QMainWindow):
             print(f"add device {device_count}")
 
             if device_id not in self.plots:
-                # continue  # 图表已经存在，无需重新创建
-                # 添加实时绘图
                 plot = RealtimePlot(device_id)
                 self.plot_area.addWidget(plot)
                 self.plots[device_id] = plot
@@ -273,18 +287,38 @@ class MainWindow(QMainWindow):
             process_thread.start()
             self.threads.append(process_thread)
 
-        # 定时更新图表
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_plots)
         self.timer.start(10)  # 每 100 毫秒更新一次
         self.append_log(f"Started logging for {device_count} devices starting at port {base_port}.")
+
+    def connect_to_station(self):
+        global connected_to_station
+        station_ip = self.station_ip_input.text().strip()
+
+        if not station_ip:
+            self.append_log("Please enter a valid base station IP address.")
+            return
+
+        # 发送UDP连接请求
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            sock.sendto(b"Connection Request", (station_ip, 10000))
+            sock.settimeout(20)  # 设置超时
+            sock.recvfrom(1024)  # 等待确认报文（假设基站会回应确认连接）
+            connected_to_station = True
+            self.append_log(f"Connected to base station at {station_ip}.")
+            sock.close()
+            self.connect_button.setEnabled(False)  # 禁用连接按钮
+        except Exception as e:
+            connected_to_station = False
+            self.append_log(f"Failed to connect to base station: {e}")
 
     def update_plots(self):
         for device_id, plot in self.plots.items():
             with self.locks[device_id]:
                 data_for_plot = self.data_storages[device_id][:]  # 创建绘图数据副本
             plot.update_plot(data_for_plot)  # 使用副本更新绘图
-
 
     def stop_logging(self):
         global running
@@ -312,11 +346,11 @@ class MainWindow(QMainWindow):
                     print(f"Error saving data: {e}")
                 future.result()
 
-        
-
         self.append_log("All data saved. Logging stopped.")
         self.start_button.setEnabled(True)
         self.stop_button.setEnabled(False)
+
+
 
 # 启动程序
 if __name__ == "__main__":
