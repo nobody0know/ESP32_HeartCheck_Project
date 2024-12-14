@@ -27,10 +27,10 @@
 #include "esp_mac.h"
 #include "esp_now.h"
 #include "esp_crc.h"
-#include "espnow_example.h"
 #include "board.h"
 #include "ws2812/ws2812.h"
 #include <sys/time.h>
+#include "wifi/wifi.h"
 /* ESPNOW can work in both station and softap mode. It is configured in menuconfig. */
 #if CONFIG_ESPNOW_WIFI_MODE_STATION
 #define ESPNOW_WIFI_MODE WIFI_MODE_STA

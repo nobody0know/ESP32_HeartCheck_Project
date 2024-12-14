@@ -19,14 +19,17 @@
 #include "esp_adc/adc_cali.h"
 #include "esp_adc/adc_cali_scheme.h"
 
+#include "bat_adc.h"
+
 const static char *TAG = "ADC";
 
 /*---------------------------------------------------------------
         ADC General Macros
 ---------------------------------------------------------------*/
 // ADC1 Channels
-#define EXAMPLE_ADC1_CHAN0 ADC_CHANNEL_0
+#define ECG_ADC1_CHAN0 ADC_CHANNEL_0
 
+adc_oneshot_unit_handle_t adc1_handle;
 static int adc_raw[1][10];
 static int voltage[1][10];
 
@@ -36,7 +39,7 @@ extern uint32_t time_flag_gap;
 /*---------------------------------------------------------------
         ADC Calibration
 ---------------------------------------------------------------*/
-static bool example_adc_calibration_init(adc_unit_t unit, adc_channel_t channel, adc_atten_t atten, adc_cali_handle_t *out_handle)
+static bool ecg_adc_calibration_init(adc_unit_t unit, adc_channel_t channel, adc_atten_t atten, adc_cali_handle_t *out_handle)
 {
     adc_cali_handle_t handle = NULL;
     esp_err_t ret = ESP_FAIL;
@@ -94,7 +97,7 @@ static bool example_adc_calibration_init(adc_unit_t unit, adc_channel_t channel,
     return calibrated;
 }
 
-static void example_adc_calibration_deinit(adc_cali_handle_t handle)
+static void ecg_adc_calibration_deinit(adc_cali_handle_t handle)
 {
 #if ADC_CALI_SCHEME_CURVE_FITTING_SUPPORTED
     ESP_LOGI(TAG, "deregister %s calibration scheme", "Curve Fitting");
@@ -109,7 +112,7 @@ static void example_adc_calibration_deinit(adc_cali_handle_t handle)
 void ADC_oneshot_Task(void *pvParameter)
 {
     //-------------ADC1 Init---------------//
-    adc_oneshot_unit_handle_t adc1_handle;
+    
     adc_oneshot_unit_init_cfg_t init_config1 = {
         .unit_id = ADC_UNIT_1,
     };
@@ -118,25 +121,27 @@ void ADC_oneshot_Task(void *pvParameter)
     //-------------ADC1 Config---------------//
     adc_oneshot_chan_cfg_t config = {
         .bitwidth = ADC_BITWIDTH_DEFAULT,
-        .atten = EXAMPLE_ADC_ATTEN,
+        .atten = ECG_ADC_ATTEN,
     };
-    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc1_handle, EXAMPLE_ADC1_CHAN0, &config));
+    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc1_handle, ECG_ADC1_CHAN0, &config));
+
+    BAT_adc_init(adc1_handle, &config);
 
     //-------------ADC1 Calibration Init---------------//
     adc_cali_handle_t adc1_cali_chan0_handle = NULL;
-    bool do_calibration1_chan0 = example_adc_calibration_init(ADC_UNIT_1, EXAMPLE_ADC1_CHAN0, EXAMPLE_ADC_ATTEN, &adc1_cali_chan0_handle);
+    bool do_calibration1_chan0 = ecg_adc_calibration_init(ADC_UNIT_1, ECG_ADC1_CHAN0, ECG_ADC_ATTEN, &adc1_cali_chan0_handle);
 
     while (1)
     {
         payload_msg adc_true_value;
-        ESP_ERROR_CHECK(adc_oneshot_read(adc1_handle, EXAMPLE_ADC1_CHAN0, &adc_raw[0][0]));
-        // ESP_LOGI(TAG, "ADC%d Channel[%d] Raw Data: %d", ADC_UNIT_1 + 1, EXAMPLE_ADC1_CHAN0, adc_raw[0][0]);
+        ESP_ERROR_CHECK(adc_oneshot_read(adc1_handle, ECG_ADC1_CHAN0, &adc_raw[0][0]));
+        // ESP_LOGI(TAG, "ADC%d Channel[%d] Raw Data: %d", ADC_UNIT_1 + 1, ECG_ADC1_CHAN0, adc_raw[0][0]);
         extern bool usermsg_send_start;
         if (usermsg_send_start == 1 && do_calibration1_chan0)
         {
             {
                 ESP_ERROR_CHECK(adc_cali_raw_to_voltage(adc1_cali_chan0_handle, adc_raw[0][0], &voltage[0][0]));
-                // ESP_LOGI(TAG, "ADC%d Channel[%d] Cali Voltage: %d mV", ADC_UNIT_1 + 1, EXAMPLE_ADC1_CHAN0, voltage[0][0]);
+                // ESP_LOGI(TAG, "ADC%d Channel[%d] Cali Voltage: %d mV", ADC_UNIT_1 + 1, ECG_ADC1_CHAN0, voltage[0][0]);
                 adc_true_value.payload_data.adc_value = (uint16_t)voltage[0][0];
                 adc_true_value.payload_data.timestamp = esp_log_timestamp() + time_flag_gap;
                 xQueueSend(ADC_queue, &adc_true_value, 10);
@@ -149,6 +154,6 @@ void ADC_oneshot_Task(void *pvParameter)
     ESP_ERROR_CHECK(adc_oneshot_del_unit(adc1_handle));
     if (do_calibration1_chan0)
     {
-        example_adc_calibration_deinit(adc1_cali_chan0_handle);
+        ecg_adc_calibration_deinit(adc1_cali_chan0_handle);
     }
 }

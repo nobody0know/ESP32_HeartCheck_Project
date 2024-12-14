@@ -1,4 +1,19 @@
-#include "espnow_example.h"
+#include <stdlib.h>
+#include <time.h>
+#include <string.h>
+#include <assert.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
+#include "freertos/semphr.h"
+#include "freertos/timers.h"
+#include "nvs_flash.h"
+#include "board.h"
+#include "ws2812/ws2812.h"
+#include "esp_now_app.h"
+#include "adc_detect/adc_common_config.h"
+#include "udp/udp_server.h"
+#include "wifi/wifi.h"
+#include "battery_detect/bat_adc.h"
 QueueHandle_t ADC_queue;
 static const char *TAG = "MAIN INIT";
 
@@ -23,6 +38,7 @@ void app_main(void)
 
     xTaskCreate(WS2812_Task,"WS2812_Task",3072,NULL,2,NULL);
     xTaskCreate(ADC_oneshot_Task,"ADC_Task",4096,NULL,5,NULL);
+    // xTaskCreate(BAT_detect_Task,"BAT_detect_Task",4096,NULL,2,NULL);
 
 
     ret = wifi_sta_init();

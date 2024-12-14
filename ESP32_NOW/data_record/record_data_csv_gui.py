@@ -303,16 +303,24 @@ class MainWindow(QMainWindow):
         # 发送UDP连接请求
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            sock.sendto(b"Connection Request", (station_ip, 10000))
-            sock.settimeout(20)  # 设置超时
-            sock.recvfrom(1024)  # 等待确认报文（假设基站会回应确认连接）
+            sock.sendto(b"Connection Request", (station_ip, 3333))
+            sock.settimeout(2)  # 设置超时
+            # 等待确认报文（假设基站会回应确认连接）
+            sock_request = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            sock_request.settimeout(2)  # 设置超时
+            sock_request.bind(('', 10000))
+            sock_request.recvfrom(1024)
             connected_to_station = True
             self.append_log(f"Connected to base station at {station_ip}.")
             sock.close()
             self.connect_button.setEnabled(False)  # 禁用连接按钮
+        except socket.timeout:
+            connected_to_station = False
+            self.append_log("Connection timed out. Please check the base station IP and port.")
         except Exception as e:
             connected_to_station = False
             self.append_log(f"Failed to connect to base station: {e}")
+
 
     def update_plots(self):
         for device_id, plot in self.plots.items():

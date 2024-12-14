@@ -95,6 +95,30 @@ static void udp_server_task(void *pvParameters)
                 ESP_LOGI(TAG, "Received %d bytes from %s:", len, pc_addr_str);
                 ESP_LOGI(TAG, "%s", rx_buffer);
 
+                struct sockaddr_in dest_addr;
+                dest_addr.sin_addr.s_addr = inet_addr(pc_addr_str);
+                dest_addr.sin_family = AF_INET;
+                dest_addr.sin_port = htons(10000);
+                addr_family = AF_INET;
+                ip_protocol = IPPROTO_IP;
+
+                int sock_request = socket(addr_family, SOCK_DGRAM, ip_protocol);
+                // printf("socket back is %d",sock);//debug
+                if (sock_request < 0)
+                {
+                    ESP_LOGE(TAG, "Unable to create request socket: errno %d", errno);
+                    break;
+                }
+                ESP_LOGI(TAG, "Request socket created");
+
+                char request_text[128] = "esp32";
+                err = sendto(sock_request, request_text, sizeof(request_text), 0, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
+                if (err < 0)
+                {
+                    ESP_LOGE(TAG, "Error occurred during sending: errno %d", errno);
+                    break;
+                }
+
                 xEventGroupSetBits(gui_event_group, LCD_GET_PCIP_OK_BIT);
 
                 shutdown(sock, 0);

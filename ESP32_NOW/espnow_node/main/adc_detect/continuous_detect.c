@@ -35,25 +35,25 @@ static void continuous_adc_init(adc_channel_t *channel, uint8_t channel_num, adc
 
     adc_continuous_handle_cfg_t adc_config = {
         .max_store_buf_size = 1024,
-        .conv_frame_size = EXAMPLE_READ_LEN,
+        .conv_frame_size = ECG_READ_LEN,
         .flags.flush_pool = true,
     };
     ESP_ERROR_CHECK(adc_continuous_new_handle(&adc_config, &handle));
 
     adc_continuous_config_t dig_cfg = {
         .sample_freq_hz = 20 * 1000,
-        .conv_mode = EXAMPLE_ADC_CONV_MODE,
-        .format = EXAMPLE_ADC_OUTPUT_TYPE,
+        .conv_mode = ECG_ADC_CONV_MODE,
+        .format = ECG_ADC_OUTPUT_TYPE,
     };
 
     adc_digi_pattern_config_t adc_pattern[SOC_ADC_PATT_LEN_MAX] = {0};
     dig_cfg.pattern_num = channel_num;
     for (int i = 0; i < channel_num; i++)
     {
-        adc_pattern[i].atten = EXAMPLE_ADC_ATTEN;
+        adc_pattern[i].atten = ECG_ADC_ATTEN;
         adc_pattern[i].channel = channel[i] & 0x7;
-        adc_pattern[i].unit = EXAMPLE_ADC_UNIT;
-        adc_pattern[i].bit_width = EXAMPLE_ADC_BIT_WIDTH;
+        adc_pattern[i].unit = ECG_ADC_UNIT;
+        adc_pattern[i].bit_width = ECG_ADC_BIT_WIDTH;
 
         ESP_LOGI(TAG, "adc_pattern[%d].atten is :%" PRIx8, i, adc_pattern[i].atten);
         ESP_LOGI(TAG, "adc_pattern[%d].channel is :%" PRIx8, i, adc_pattern[i].channel);
@@ -129,8 +129,8 @@ void ADC_continuous_Task(void *pvParameter)
 {
     esp_err_t ret;
     uint32_t ret_num = 0;
-    uint8_t result[EXAMPLE_READ_LEN] = {0};
-    memset(result, 0xcc, EXAMPLE_READ_LEN);
+    uint8_t result[ECG_READ_LEN] = {0};
+    memset(result, 0xcc, ECG_READ_LEN);
 
     s_task_handle = xTaskGetCurrentTaskHandle();
 
@@ -139,7 +139,7 @@ void ADC_continuous_Task(void *pvParameter)
 
     // ADC1 Calibration Init
     adc_cali_handle_t adc1_cali_chan0_handle = NULL;
-    bool do_calibration1_chan0 = example_adc_calibration_init(EXAMPLE_ADC_UNIT, ADC_CHANNEL_0, EXAMPLE_ADC_ATTEN, &adc1_cali_chan0_handle);
+    bool do_calibration1_chan0 = example_adc_calibration_init(ECG_ADC_UNIT, ADC_CHANNEL_0, ECG_ADC_ATTEN, &adc1_cali_chan0_handle);
 
     adc_continuous_evt_cbs_t cbs = {
         .on_conv_done = s_conv_done_cb,
@@ -159,7 +159,7 @@ void ADC_continuous_Task(void *pvParameter)
          */
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
-        char unit[] = EXAMPLE_ADC_UNIT_STR(EXAMPLE_ADC_UNIT);
+        char unit[] = ECG_ADC_UNIT_STR(ECG_ADC_UNIT);
 
         while (1)
         {
@@ -167,7 +167,7 @@ void ADC_continuous_Task(void *pvParameter)
             uint32_t adc_value_avg = 0;
             uint32_t adc_voltage = 0;
             uint32_t read_data_num = 0;
-            ret = adc_continuous_read(handle, result, EXAMPLE_READ_LEN, &ret_num, 10);
+            ret = adc_continuous_read(handle, result, ECG_READ_LEN, &ret_num, 10);
             if (ret == ESP_OK && do_calibration1_chan0)
             {
                 uint32_t adc_data_timebase = esp_log_timestamp();
@@ -175,13 +175,13 @@ void ADC_continuous_Task(void *pvParameter)
                 for (int i = 0, time_insert = 0; i < ret_num; i += SOC_ADC_DIGI_RESULT_BYTES)
                 {
                     adc_digi_output_data_t *p = (adc_digi_output_data_t *)&result[i];
-                    uint32_t chan_num = EXAMPLE_ADC_GET_CHANNEL(p);
-                    uint32_t data = EXAMPLE_ADC_GET_DATA(p);
+                    uint32_t chan_num = ECG_ADC_GET_CHANNEL(p);
+                    uint32_t data = ECG_ADC_GET_DATA(p);
                     /* Check the channel number validation, the data is invalid if the channel num exceed the maximum channel */
                     extern bool usermsg_send_start;
                     if (usermsg_send_start)
                     {
-                        if (chan_num < SOC_ADC_CHANNEL_NUM(EXAMPLE_ADC_UNIT))
+                        if (chan_num < SOC_ADC_CHANNEL_NUM(ECG_ADC_UNIT))
                         {
                             adc_value_avg += data;
                             if (i % 10 == 0)
@@ -212,7 +212,7 @@ void ADC_continuous_Task(void *pvParameter)
             }
             else if (ret == ESP_ERR_TIMEOUT)
             {
-                // We try to read `EXAMPLE_READ_LEN` until API returns timeout, which means there's no available data
+                // We try to read `ECG_READ_LEN` until API returns timeout, which means there's no available data
                 break;
             }
         }

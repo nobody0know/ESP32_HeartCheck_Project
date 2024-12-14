@@ -22,6 +22,6 @@ def print_udp_stream(udp_port):
         print("Socket closed.")
 
 if __name__ == "__main__":
-    udp_port = 12345  # 可以修改为你希望监听的端口号
+    udp_port = 10000  # 可以修改为你希望监听的端口号
     print_udp_stream(udp_port)
     # aa b5 09 01 00 2d 01 39 00 0e 00 000000000000000000
