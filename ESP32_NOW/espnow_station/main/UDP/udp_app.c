@@ -118,7 +118,7 @@ static void udp_server_task(void *pvParameters)
                     ESP_LOGE(TAG, "Error occurred during sending: errno %d", errno);
                     break;
                 }
-
+                vTaskDelay(1000 / portTICK_PERIOD_MS);
                 xEventGroupSetBits(gui_event_group, LCD_GET_PCIP_OK_BIT);
 
                 shutdown(sock, 0);
