@@ -18,6 +18,7 @@
 #include "esp_adc/adc_oneshot.h"
 #include "esp_adc/adc_cali.h"
 #include "esp_adc/adc_cali_scheme.h"
+#include "esp_timer.h"
 
 #include "bat_adc.h"
 
@@ -112,7 +113,7 @@ static void ecg_adc_calibration_deinit(adc_cali_handle_t handle)
 void ADC_oneshot_Task(void *pvParameter)
 {
     //-------------ADC1 Init---------------//
-    
+
     adc_oneshot_unit_init_cfg_t init_config1 = {
         .unit_id = ADC_UNIT_1,
     };
@@ -133,19 +134,24 @@ void ADC_oneshot_Task(void *pvParameter)
 
     while (1)
     {
-        payload_msg adc_true_value;
-        ESP_ERROR_CHECK(adc_oneshot_read(adc1_handle, ECG_ADC1_CHAN0, &adc_raw[0][0]));
-        // ESP_LOGI(TAG, "ADC%d Channel[%d] Raw Data: %d", ADC_UNIT_1 + 1, ECG_ADC1_CHAN0, adc_raw[0][0]);
         extern bool usermsg_send_start;
         if (usermsg_send_start == 1 && do_calibration1_chan0)
         {
-            {
-                ESP_ERROR_CHECK(adc_cali_raw_to_voltage(adc1_cali_chan0_handle, adc_raw[0][0], &voltage[0][0]));
-                // ESP_LOGI(TAG, "ADC%d Channel[%d] Cali Voltage: %d mV", ADC_UNIT_1 + 1, ECG_ADC1_CHAN0, voltage[0][0]);
-                adc_true_value.payload_data.adc_value = (uint16_t)voltage[0][0];
-                adc_true_value.payload_data.timestamp = esp_log_timestamp() + time_flag_gap;
-                xQueueSend(ADC_queue, &adc_true_value, 10);
-            }
+            // uint32_t in_tick = esp_timer_get_time();
+            payload_msg adc_true_value;
+            ESP_ERROR_CHECK(adc_oneshot_read(adc1_handle, ECG_ADC1_CHAN0, &adc_raw[0][0]));
+            // ESP_LOGI(TAG, "ADC%d Channel[%d] Raw Data: %d", ADC_UNIT_1 + 1, ECG_ADC1_CHAN0, adc_raw[0][0]);
+
+            ESP_ERROR_CHECK(adc_cali_raw_to_voltage(adc1_cali_chan0_handle, adc_raw[0][0], &voltage[0][0]));
+            // ESP_LOGI(TAG, "ADC%d Channel[%d] Cali Voltage: %d mV", ADC_UNIT_1 + 1, ECG_ADC1_CHAN0, voltage[0][0]);
+            adc_true_value.payload_data.adc_value = (uint16_t)voltage[0][0];
+            adc_true_value.payload_data.timestamp = esp_log_timestamp() + time_flag_gap;
+            // ESP_LOGI(TAG, "time stamp %ld adc value: %d", adc_true_value.payload_data.timestamp, adc_true_value.payload_data.adc_value);
+            xQueueSend(ADC_queue, &adc_true_value, 10);
+
+            // uint32_t out_tick = esp_timer_get_time();
+            // uint32_t time_diff = out_tick - in_tick;
+            // ESP_LOGI(TAG, "time diff: %ld us", time_diff);
         }
         vTaskDelay(pdMS_TO_TICKS(1));
     }
