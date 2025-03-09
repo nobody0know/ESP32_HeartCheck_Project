@@ -40,8 +40,6 @@ static void udp_server_task(void *pvParameters)
     int ip_protocol = 0;
     struct sockaddr_in6 dest_addr;
 
-    xEventGroupWaitBits(gui_event_group, LCD_WIFI_OK_BIT, pdFALSE, pdFALSE, portMAX_DELAY);
-
     while (1)
     {
         struct sockaddr_in *dest_addr_ip4 = (struct sockaddr_in *)&dest_addr;
@@ -141,6 +139,7 @@ static void udp_server_task(void *pvParameters)
 
 void udp_app_init(void)
 {
+    xEventGroupWaitBits(gui_event_group, LCD_WIFI_OK_BIT, pdFALSE, pdFALSE, portMAX_DELAY);
     xTaskCreate(udp_server_task, "udp_server", 4096, NULL, 5, NULL);
 }
 

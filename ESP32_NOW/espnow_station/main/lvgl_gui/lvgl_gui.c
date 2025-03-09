@@ -84,9 +84,13 @@ void lvgl_task()
     xEventGroupWaitBits(gui_event_group, LCD_INIT_OK_BIT, pdFALSE, pdFALSE, portMAX_DELAY);
     lv_timer_create(lvgl_gui_update, 200, NULL);
     event_now = LCD_INIT_OK_BIT;
-    if (ifneed_smart_config() == 0)
+    if (ifneed_wifi_provision() == 0)
     {
         lvgl_wifi_connect_screen(&guider_ui);
+    }
+    else
+    {
+        lvgl_gui_esptouch_screen(&guider_ui);
     }
 
     xEventGroupWaitBits(gui_event_group, LCD_WIFI_OK_BIT, pdFALSE, pdFALSE, portMAX_DELAY);
@@ -108,7 +112,7 @@ void lvgl_task()
 void lvgl_gui_init()
 {
     gui_event_group = xEventGroupCreate();
-    xTaskCreate(lvgl_task, "lvgl_task", 8192, NULL, 3, NULL);
+    xTaskCreate(lvgl_task, "lvgl_task", 2048, NULL, 3, NULL);
 }
 
 void show_esptouch_screen()

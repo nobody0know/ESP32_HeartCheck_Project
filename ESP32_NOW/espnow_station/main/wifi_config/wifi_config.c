@@ -15,6 +15,7 @@
 #include "wifi_config.h"
 #include "event_group_config.h"
 #include "lvgl_gui.h"
+#include "wifi_provision.h"
 
 #define WIFI_MAX_RETRY_TIMES 10
 
@@ -26,16 +27,17 @@ uint8_t rvd_data[33] = {0};
 char wifi_ssid[33] = {0};
 char wifi_password[65] = {0};
 
-uint8_t wifi_config_flag;
+uint8_t wifi_config_flag = 0;
 uint8_t wifi_disconnect_flag = 0;
 
 static nvs_handle wifi_config_nvs_h;
 static uint16_t wifi_retry_count = 0;
 static char my_ip_addr[16] = {0};
 
-static const char *TAG = "smartconfig";
+static const char *TAG = "wificonfig";
 
 static void smartconfig_task(void *parm);
+void wifi_save_config(uint8_t wifi_config_flag, char wifi_ssid[], char wifi_password[]);
 
 static void event_handler(void *arg, esp_event_base_t event_base,
                           int32_t event_id, void *event_data)
@@ -56,7 +58,9 @@ static void event_handler(void *arg, esp_event_base_t event_base,
         if (wifi_retry_count > WIFI_MAX_RETRY_TIMES && reset_flag == 0) // 刚开机触发首次联网失败且重连次数过多，在运行期重连失败不执行配网程序
         {
             ESP_LOGW(TAG, "wifi connect error turn to esptouch!");
-            xTaskCreate(smartconfig_task, "smartconfig_task", 4096, NULL, 5, NULL);
+            // xTaskCreate(smartconfig_task, "smartconfig_task", 4096, NULL, 5, NULL);
+            show_esptouch_screen();
+            xTaskCreate(wifi_provision_main, "wifi_provision_task", 4096, NULL, 5, NULL);
             wifi_retry_count = 0;
         }
         else
@@ -68,10 +72,10 @@ static void event_handler(void *arg, esp_event_base_t event_base,
     {
         ip_event_got_ip_t *event = (ip_event_got_ip_t *)event_data;
         ESP_LOGI(TAG, "Got IP Address: " IPSTR, IP2STR(&event->ip_info.ip));
-        sprintf(my_ip_addr,""IPSTR"",IP2STR(&event->ip_info.ip));
+        sprintf(my_ip_addr, "" IPSTR "", IP2STR(&event->ip_info.ip));
 
         xEventGroupSetBits(s_wifi_event_group, CONNECTED_BIT);
-        
+
         xEventGroupSetBits(gui_event_group, LCD_WIFI_OK_BIT);
     }
     else if (event_base == SC_EVENT && event_id == SC_EVENT_SCAN_DONE)
@@ -108,39 +112,7 @@ static void event_handler(void *arg, esp_event_base_t event_base,
             printf("\n");
         }
 
-        if (wifi_config_flag == 0) // first need write wifi config
-        {
-            ESP_LOGI(TAG,"wifi_cfg update now... \n");
-            wifi_config_flag = 1;
-            ESP_ERROR_CHECK(nvs_set_str(wifi_config_nvs_h, "wifi_ssid", wifi_ssid));
-            ESP_ERROR_CHECK(nvs_set_str(wifi_config_nvs_h, "wifi_passwd", wifi_password));
-            ESP_ERROR_CHECK(nvs_set_u8(wifi_config_nvs_h, "wifi_update", wifi_config_flag));
-            ESP_LOGI(TAG,"wifi_cfg update ok. \n");
-            ESP_ERROR_CHECK(nvs_commit(wifi_config_nvs_h)); /* 提交 */
-            nvs_close(wifi_config_nvs_h);                   /* 关闭 */
-        }
-        else // next power on just to need check wifi config
-        {
-            char nvs_wifi_ssid[33] = {0};
-            char nvs_wifi_password[65] = {0};
-
-            size_t size = sizeof(wifi_ssid);
-            nvs_get_str(wifi_config_nvs_h, "wifi_ssid", nvs_wifi_ssid, &size);
-            size = sizeof(wifi_password);
-            nvs_get_str(wifi_config_nvs_h, "wifi_passwd", nvs_wifi_password, &size);
-            ESP_LOGI(TAG, "NVS SSID:%s", nvs_wifi_ssid);
-            ESP_LOGI(TAG, "NSV PASSWORD:%s", nvs_wifi_password);
-
-            if (memcmp(wifi_ssid, nvs_wifi_ssid, sizeof(wifi_ssid)) && memcmp(wifi_password, nvs_wifi_password, sizeof(wifi_password)))
-            {
-                ESP_LOGI(TAG,"wifi_cfg update now... \n");
-                ESP_ERROR_CHECK(nvs_set_str(wifi_config_nvs_h, "wifi_ssid", wifi_ssid));
-                ESP_ERROR_CHECK(nvs_set_str(wifi_config_nvs_h, "wifi_passwd", wifi_password));
-                ESP_LOGI(TAG,"wifi_cfg update ok. \n");
-                ESP_ERROR_CHECK(nvs_commit(wifi_config_nvs_h)); /* 提交 */
-                nvs_close(wifi_config_nvs_h);                   /* 关闭 */
-            }
-        }
+        wifi_save_config(wifi_config_flag,wifi_ssid, wifi_password);
 
         ESP_ERROR_CHECK(esp_wifi_disconnect());
         ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
@@ -153,7 +125,44 @@ static void event_handler(void *arg, esp_event_base_t event_base,
     }
 }
 
-static void smartconfig_task(void *parm)
+void wifi_save_config(uint8_t wifi_config_flag, char wifi_ssid[], char wifi_password[])
+{
+    if (wifi_config_flag == 0) // first need write wifi config
+    {
+        ESP_LOGI(TAG, "wifi_cfg update now... \n");
+        wifi_config_flag = 1;
+        ESP_ERROR_CHECK(nvs_set_str(wifi_config_nvs_h, "wifi_ssid", wifi_ssid));
+        ESP_ERROR_CHECK(nvs_set_str(wifi_config_nvs_h, "wifi_passwd", wifi_password));
+        ESP_ERROR_CHECK(nvs_set_u8(wifi_config_nvs_h, "wifi_update", wifi_config_flag));
+        ESP_LOGI(TAG, "wifi_cfg update ok. \n");
+        ESP_ERROR_CHECK(nvs_commit(wifi_config_nvs_h)); /* 提交 */
+        nvs_close(wifi_config_nvs_h);                   /* 关闭 */
+    }
+    else // next power on just to need check wifi config
+    {
+        char nvs_wifi_ssid[33] = {0};
+        char nvs_wifi_password[65] = {0};
+
+        size_t size = strlen(wifi_ssid);
+        nvs_get_str(wifi_config_nvs_h, "wifi_ssid", nvs_wifi_ssid, &size);
+        size = strlen(wifi_password);
+        nvs_get_str(wifi_config_nvs_h, "wifi_passwd", nvs_wifi_password, &size);
+        ESP_LOGI(TAG, "NVS SSID:%s", nvs_wifi_ssid);
+        ESP_LOGI(TAG, "NSV PASSWORD:%s", nvs_wifi_password);
+
+        if (memcmp(wifi_ssid, nvs_wifi_ssid, strlen(wifi_ssid)) && memcmp(wifi_password, nvs_wifi_password, strlen(wifi_password)))
+        {
+            ESP_LOGI(TAG, "wifi_cfg update now... \n");
+            ESP_ERROR_CHECK(nvs_set_str(wifi_config_nvs_h, "wifi_ssid", wifi_ssid));
+            ESP_ERROR_CHECK(nvs_set_str(wifi_config_nvs_h, "wifi_passwd", wifi_password));
+            ESP_LOGI(TAG, "wifi_cfg update ok. \n");
+            ESP_ERROR_CHECK(nvs_commit(wifi_config_nvs_h)); /* 提交 */
+            nvs_close(wifi_config_nvs_h);                   /* 关闭 */
+        }
+    }
+}
+
+void smartconfig_task(void *parm)
 {
     xEventGroupWaitBits(gui_event_group, LCD_INIT_OK_BIT, pdFALSE, pdFALSE, portMAX_DELAY);
     show_esptouch_screen();
@@ -197,13 +206,13 @@ void wifi_connect_task()
     switch (err)
     {
     case ESP_OK:
-        ESP_LOGI(TAG,"wifi_cfg find value is %d. \n", wifi_config_flag);
+        ESP_LOGI(TAG, "wifi_cfg find value is %d. \n", wifi_config_flag);
         break;
     case ESP_ERR_NVS_NOT_FOUND:
-        ESP_LOGI(TAG,"wifi need to config\n");
+        ESP_LOGI(TAG, "wifi need to config\n");
         break;
     default:
-        ESP_LOGI(TAG,"Error (%s) reading!\n", esp_err_to_name(err));
+        ESP_LOGI(TAG, "Error (%s) reading!\n", esp_err_to_name(err));
     }
 
     if (wifi_config_flag == 1)
@@ -216,7 +225,7 @@ void wifi_connect_task()
         ESP_LOGI(TAG, "NSV PASSWORD:%s", wifi_password);
     }
 
-    ESP_LOGI(TAG,"ESP_WIFI_MODE_STA \n");
+    ESP_LOGI(TAG, "ESP_WIFI_MODE_STA \n");
 
     ESP_ERROR_CHECK(esp_netif_init());                // 用于初始化tcpip协议栈
     ESP_ERROR_CHECK(esp_event_loop_create_default()); // 创建一个默认系统事件调度循环，之后可以注册回调函数来处理系统的一些事件
@@ -244,7 +253,9 @@ void wifi_connect_task()
 
     if (wifi_config_flag == 0)
     {
-        xTaskCreate(smartconfig_task, "smartconfig_task", 5120, NULL, 5, NULL);
+        // xTaskCreate(smartconfig_task, "smartconfig_task", 5120, NULL, 5, NULL);
+        xEventGroupWaitBits(gui_event_group, LCD_INIT_OK_BIT, pdFALSE, pdFALSE, portMAX_DELAY);
+        xTaskCreate(wifi_provision_main, "wifi_provision_task", 4096, NULL, 5, NULL);
     }
 
     ESP_LOGI(TAG, "wifi_init_sta finished.");
@@ -257,14 +268,15 @@ void wifi_config_init(void)
     xTaskCreate(wifi_connect_task, "wifi_connect_task", 4096, NULL, 3, NULL);
 }
 
-char * get_ip_addr(void)
+char *get_ip_addr(void)
 {
     return my_ip_addr;
 }
 
-uint8_t ifneed_smart_config(void)
+uint8_t ifneed_wifi_provision(void)
 {
-    if(wifi_config_flag == 0)
+    if (wifi_config_flag == 0)
         return 1;
-    else return 0;
+    else
+        return 0;
 }

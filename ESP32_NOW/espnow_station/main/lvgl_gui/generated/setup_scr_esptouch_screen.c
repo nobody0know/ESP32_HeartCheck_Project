@@ -1,5 +1,5 @@
 /*
-* Copyright 2024 NXP
+* Copyright 2025 NXP
 * NXP Proprietary. This software is owned or controlled by NXP and may only be used strictly in
 * accordance with the applicable license terms. By expressly accepting such terms or by downloading, installing,
 * activating and/or otherwise using the software, you are agreeing that you have read, and that you agree to
@@ -30,7 +30,7 @@ void setup_scr_esptouch_screen(lv_ui *ui)
 
     //Write codes esptouch_screen_label_1
     ui->esptouch_screen_label_1 = lv_label_create(ui->esptouch_screen);
-    lv_label_set_text(ui->esptouch_screen_label_1, "等待ESPtouch配网......");
+    lv_label_set_text(ui->esptouch_screen_label_1, "等待ESP BLE prov配网......");
     lv_label_set_long_mode(ui->esptouch_screen_label_1, LV_LABEL_LONG_WRAP);
     lv_obj_set_pos(ui->esptouch_screen_label_1, 42, 183);
     lv_obj_set_size(ui->esptouch_screen_label_1, 227, 32);
@@ -54,7 +54,7 @@ void setup_scr_esptouch_screen(lv_ui *ui)
     //Write codes esptouch_screen_img_1
     ui->esptouch_screen_img_1 = lv_img_create(ui->esptouch_screen);
     lv_obj_add_flag(ui->esptouch_screen_img_1, LV_OBJ_FLAG_CLICKABLE);
-    lv_img_set_src(ui->esptouch_screen_img_1, &_esptouch_alpha_150x150);
+    lv_img_set_src(ui->esptouch_screen_img_1, &_provision_qrcode_alpha_150x150);
     lv_img_set_pivot(ui->esptouch_screen_img_1, 50,50);
     lv_img_set_angle(ui->esptouch_screen_img_1, 0);
     lv_obj_set_pos(ui->esptouch_screen_img_1, 81, 12);

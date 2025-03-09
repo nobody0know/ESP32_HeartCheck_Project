@@ -59,6 +59,7 @@ void setup_scr_esptouch_screen(lv_ui *ui);
 void setup_scr_wifi_connect_screen(lv_ui *ui);
 void setup_scr_main_screen(lv_ui *ui);
 LV_IMG_DECLARE(_esptouch_alpha_150x150);
+LV_IMG_DECLARE(_provision_qrcode_alpha_150x150);
 LV_IMG_DECLARE(_moyoga_alpha_100x100);
 
 LV_FONT_DECLARE(lv_font_vivo_Sans_16)

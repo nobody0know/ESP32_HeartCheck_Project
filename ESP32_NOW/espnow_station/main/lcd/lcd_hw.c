@@ -209,5 +209,5 @@ void lcd_task(void)
 
 void lcd_hw_init()
 {
-    xTaskCreate(lcd_task, "lcd_task", 8192, NULL, 4, NULL);
+    xTaskCreate(lcd_task, "lcd_task", 4096, NULL, 4, NULL);
 }
