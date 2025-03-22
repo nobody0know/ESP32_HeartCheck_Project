@@ -369,7 +369,7 @@ class MainWindow(QMainWindow):
             connected_to_station = True
             self.append_log(f"Connected to base station at {station_ip}.")
             sock.close()
-            self.connect_button.setEnabled(False)  # 禁用连接按钮
+            # self.connect_button.setEnabled(False)  # 禁用连接按钮
         except socket.timeout:
             connected_to_station = False
             self.append_log("Connection timed out. Please check the base station IP and port.")

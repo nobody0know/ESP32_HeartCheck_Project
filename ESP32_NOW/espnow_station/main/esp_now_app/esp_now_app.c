@@ -189,8 +189,8 @@ void device_prov_prepare(espnow_send_param_t *send_param, uint8_t node_mac[])
 
     extern char wifi_ssid[33];
     extern char wifi_password[65];
-    memcpy(&buf->payload[28], wifi_ssid, strlen(wifi_ssid));
-    memcpy(&buf->payload[28 + strlen((char *)wifi_ssid) + 1], wifi_password, strlen((char *)wifi_password));
+    memcpy(&buf->payload[28], wifi_ssid, strlen(wifi_ssid)+1);
+    memcpy(&buf->payload[28 + strlen((char *)wifi_ssid) + 1], wifi_password, strlen((char *)wifi_password)+1);
     printf("send wifi info:\nssid is :%s\npassword is :%s ", &buf->payload[28], &buf->payload[28 + strlen((char *)wifi_ssid) + 1]);
 
     printf("prov pay load is :");

@@ -98,19 +98,19 @@ void setup_scr_main_screen(lv_ui *ui)
     lv_obj_set_style_shadow_width(ui->main_screen_label_3, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
 
     //Write codes main_screen_img_1
-    ui->main_screen_img_1 = lv_img_create(ui->main_screen);
-    lv_obj_add_flag(ui->main_screen_img_1, LV_OBJ_FLAG_CLICKABLE);
-    lv_img_set_src(ui->main_screen_img_1, &_moyoga_alpha_100x100);
-    lv_img_set_pivot(ui->main_screen_img_1, 50,50);
-    lv_img_set_angle(ui->main_screen_img_1, 0);
-    lv_obj_set_pos(ui->main_screen_img_1, 14, 125);
-    lv_obj_set_size(ui->main_screen_img_1, 100, 100);
+    // ui->main_screen_img_1 = lv_img_create(ui->main_screen);
+    // lv_obj_add_flag(ui->main_screen_img_1, LV_OBJ_FLAG_CLICKABLE);
+    // lv_img_set_src(ui->main_screen_img_1, &_moyoga_alpha_100x100);
+    // lv_img_set_pivot(ui->main_screen_img_1, 50,50);
+    // lv_img_set_angle(ui->main_screen_img_1, 0);
+    // lv_obj_set_pos(ui->main_screen_img_1, 14, 125);
+    // lv_obj_set_size(ui->main_screen_img_1, 100, 100);
 
-    //Write style for main_screen_img_1, Part: LV_PART_MAIN, State: LV_STATE_DEFAULT.
-    lv_obj_set_style_img_recolor_opa(ui->main_screen_img_1, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_img_opa(ui->main_screen_img_1, 255, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_radius(ui->main_screen_img_1, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_clip_corner(ui->main_screen_img_1, true, LV_PART_MAIN|LV_STATE_DEFAULT);
+    // //Write style for main_screen_img_1, Part: LV_PART_MAIN, State: LV_STATE_DEFAULT.
+    // lv_obj_set_style_img_recolor_opa(ui->main_screen_img_1, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
+    // lv_obj_set_style_img_opa(ui->main_screen_img_1, 255, LV_PART_MAIN|LV_STATE_DEFAULT);
+    // lv_obj_set_style_radius(ui->main_screen_img_1, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
+    // lv_obj_set_style_clip_corner(ui->main_screen_img_1, true, LV_PART_MAIN|LV_STATE_DEFAULT);
 
     //The custom code of main_screen.
 

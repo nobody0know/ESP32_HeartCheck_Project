@@ -131,6 +131,10 @@ static void wifi_prov_event_handler(void *arg, esp_event_base_t event_base,
             extern uint8_t wifi_config_flag;
             wifi_save_config(wifi_config_flag, (const char *) wifi_sta_cfg->ssid, 
                                  (const char *) wifi_sta_cfg->password);
+            extern char wifi_ssid[33];
+            extern char wifi_password[65];
+            memcpy(wifi_ssid, wifi_sta_cfg->ssid, sizeof(wifi_sta_cfg->ssid));
+            memcpy(wifi_password, wifi_sta_cfg->password, sizeof(wifi_sta_cfg->password));
             break;
         }
         case WIFI_PROV_CRED_FAIL:
