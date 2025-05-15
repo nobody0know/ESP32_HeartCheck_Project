@@ -9,6 +9,8 @@ import neurokit2 as nk
 # 设置绘图风格
 sns.set(style="whitegrid")
 plt.rcParams["figure.figsize"] = (12, 6)
+plt.rcParams['font.sans-serif'] = ['SimHei'] # 用来正常显示中文标签SimHei
+plt.rcParams['axes.unicode_minus'] = False # 用来正常显示负号
 
 # ----------------------------
 # 1. 读取CSV数据（无标题）
@@ -77,9 +79,9 @@ def plot_spectrum(signal, fs=1000):
     yf = fft(signal)
     xf = fftfreq(n, 1/fs)[:n//2]
     plt.plot(xf, 2.0/n * np.abs(yf[0:n//2]))
-    plt.xlabel('Frequency (Hz)')
-    plt.ylabel('Amplitude')
-    plt.title('Frequency Spectrum')
+    plt.xlabel('频率 (Hz)',fontsize=20)
+    plt.ylabel('振幅',fontsize=20)
+    plt.title('频谱图',fontsize=20)
     plt.xlim(0, 100)  # 只看0-100 Hz范围
 
 # ----------------------------
@@ -122,10 +124,10 @@ if __name__ == "__main__":
     
     # 绘制时域信号
     plt.figure()
-    plt.plot(ecg_raw[:5000], label='Raw ECG', alpha=0.5)
-    plt.plot(ecg_filtered[:5000], label='Filtered ECG')
+    plt.plot(ecg_raw[:5000], label='原始心电图', alpha=0.5)
+    plt.plot(ecg_filtered[:5000], label='滤波后心电图')
     plt.scatter(r_peaks[r_peaks < 5000], ecg_filtered[r_peaks[r_peaks < 5000]], c='r', label='R Peaks')
-    plt.xlabel('Sample')
-    plt.ylabel('Voltage (mV)')
+    plt.xlabel('采样点',fontsize = 20)
+    plt.ylabel('电压幅值 (mV)',fontsize = 20)
     plt.legend()
     plt.show()
